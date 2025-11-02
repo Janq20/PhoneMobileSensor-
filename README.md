@@ -1,0 +1,1 @@
+# PhoneMobileSensor---Aplikacja
