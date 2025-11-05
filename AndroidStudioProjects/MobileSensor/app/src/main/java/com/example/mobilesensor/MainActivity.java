@@ -54,7 +54,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         getSupportActionBar().hide();
-        setContentView(R.layout.activity_main);
         opisParametrow = findViewById(R.id.opis_parametrow);
         opisParametrow.setOnClickListener(v -> {
             if (aktualnieWybranyEkran == EKRAN_GPS && aktualnaSzerokosc != 0.0) {
