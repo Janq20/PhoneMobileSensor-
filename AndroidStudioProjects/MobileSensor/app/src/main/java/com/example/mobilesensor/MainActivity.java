@@ -11,8 +11,8 @@ import java.util.Locale;
 
 import android.app.ActivityManager;
 import android.content.Context;
-import android.content.Intent; // <-- NOWY IMPORT
-import android.net.Uri; // <-- NOWY IMPORT
+import android.content.Intent;
+import android.net.Uri;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -30,6 +30,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private SensorManager sensorManager;
     private Sensor lightSensor;
     private float aktualneSwiatloLx = -1.0f;
+    private Sensor gyroscopeSensor;
+    private final float[] aktualnyZyroskop = {0, 0, 0}; // X, Y, Z
 
     private LocationManager locationManager;
     private LocationListener locationListener;
@@ -72,6 +74,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         });
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
+        gyroscopeSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
 
         if (lightSensor == null) {
             aktualneSwiatloLx = -1.0f;
@@ -119,7 +122,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         btnZyroskop.setOnClickListener(v -> {
             aktualnieWybranyEkran = EKRAN_ZYROSKOP;
             zatrzymajNasluchiwanieGPS();
-            opisParametrow.setText("Parametry żyroskopu:\n• Oś X\n• Oś Y\n• Oś Z");
+            wyswietlZyroskop(); // ŻYROSKOP: Wywołanie funkcji
         });
 
         btnSystem.setOnClickListener(v -> {
@@ -171,7 +174,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private void wyswietlInformacjeGPS() {
         String infoGps = "Parametry GPS:\n\n";
         if (aktualnaSzerokosc == 0.0 && aktualnaDlugosc == 0.0) {
-
             if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) && !locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
                 infoGps += "BŁĄD: Lokalizacja (GPS) jest wyłączona w ustawieniach telefonu.";
             } else {
@@ -182,7 +184,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             infoGps += String.format(Locale.US, "• Szerokość geogr.: %.6f\n", aktualnaSzerokosc);
             infoGps += String.format(Locale.US, "• Długość geogr.: %.6f\n", aktualnaDlugosc);
             infoGps += String.format(Locale.US, "• Dokładność: %.1f m\n", aktualnaDokladnosc);
-            infoGps += "\n(Kliknij, aby zobaczyć na mapie)"; // <-- DODANA LINIA
+            infoGps += "\n(Kliknij, aby zobaczyć na mapie)";
         }
         opisParametrow.setText(infoGps);
     }
@@ -217,14 +219,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
 
         try {
-            // Używamy NETWORK_PROVIDER dla szybszego fixa (testy w budynku)
             if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
                 locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,
                         1000,
                         1,
                         locationListener);
             }
-            // Używamy też GPS_PROVIDER dla dokładności (działa na zewnątrz)
             if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
                 locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
                         1000,
@@ -239,6 +239,25 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private void zatrzymajNasluchiwanieGPS() {
         locationManager.removeUpdates(locationListener);
+    }
+    //===============================================================
+    // FUNKCJA ŻYROSKOPU
+    //===============================================================
+
+    private void wyswietlZyroskop() {
+        String infoZyroskop;
+        if (gyroscopeSensor == null) {
+            infoZyroskop = "Parametry żyroskopu:\n\nCzujnik żyroskopu jest niedostępny na tym urządzeniu.";
+        } else {
+            infoZyroskop = String.format(Locale.US,
+                    "Parametry żyroskopu (prędkość kątowa):\n\n" +
+                            "• Oś X (pochylenie): %.1f rad/s\n" +
+                            "• Oś Y (przechylenie): %.1f rad/s\n" +
+                            "• Oś Z (obrót): %.1f rad/s",
+                    aktualnyZyroskop[0], aktualnyZyroskop[1], aktualnyZyroskop[2]
+            );
+        }
+        opisParametrow.setText(infoZyroskop);
     }
 
 
@@ -270,6 +289,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if (lightSensor != null) {
             sensorManager.registerListener(this, lightSensor, SensorManager.SENSOR_DELAY_NORMAL);
         }
+        if (gyroscopeSensor != null) {
+            sensorManager.registerListener(this, gyroscopeSensor, SensorManager.SENSOR_DELAY_UI);
+        }
 
         if (aktualnieWybranyEkran == EKRAN_GPS) {
             sprawdzIpoprosOPermISjeGPS();
@@ -286,7 +308,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     //=================================================
     // FUNKCJE CZUJNIKÓW (onSensorChanged)
     //=================================================
-
     @Override
     public void onSensorChanged(SensorEvent event) {
         if (event.sensor.getType() == Sensor.TYPE_LIGHT) {
@@ -296,13 +317,20 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             if (aktualnieWybranyEkran == EKRAN_SYSTEM) {
                 wyswietlInformacjeSystemowe();
             }
+        } else if (event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
+            aktualnyZyroskop[0] = event.values[0]; // X
+            aktualnyZyroskop[1] = event.values[1]; // Y
+            aktualnyZyroskop[2] = event.values[2]; // Z
+
+            if (aktualnieWybranyEkran == EKRAN_ZYROSKOP) {
+                wyswietlZyroskop();
+            }
         }
     }
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
     }
-
     //=================================================
     // FUNKCJA ZMIANY JASNOŚCI EKRANU
     //=================================================
