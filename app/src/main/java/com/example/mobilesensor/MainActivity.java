@@ -217,7 +217,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         }
     }
-
+//Funkcja Pokazywania pogody
     private void pobierzDanePogodowe(double lat, double lon) {
         executorService.execute(() -> {
             String response = "";
