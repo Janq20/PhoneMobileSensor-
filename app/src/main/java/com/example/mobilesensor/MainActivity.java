@@ -10,7 +10,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.graphics.Typeface; // Dodane do pogrubienia czcionki
+import android.graphics.Typeface;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -26,10 +26,10 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.view.Gravity; // Dodane do centrowania
+import android.util.DisplayMetrics;
+import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -43,6 +43,7 @@ import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.RandomAccessFile;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.List;
@@ -75,6 +76,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private Sensor lightSensor;
     private Sensor gyroscopeSensor;
     private Sensor accelerometerSensor;
+
     private float aktualneSwiatloLx = -1.0f;
     private final float[] aktualnyZyroskop = {0, 0, 0};
     private final float[] aktualnyAkcelerometr = {0, 0, 0};
@@ -89,6 +91,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
+    // Handler do odświeżania RAMu
+    private final Handler ramHandler = new Handler(Looper.getMainLooper());
+    private Runnable ramRunnable;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -98,12 +104,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         setupSensors();
         setupLocation();
         setupButtons();
-
-        wyswietlInformacjeOgolne();
+        setupRamRefresher(); // Konfiguracja odświeżania
+        startRamRefresher();
         sprawdzIpoprosOPermISjeGPS();
     }
 
-    // --- KONFIGURACJA UI (TUTAJ ZMIENIAMY WIELKOŚĆ TEKSTU) ---
+    // --- KONFIGURACJA UI ---
     private void setupUI() {
         if (getSupportActionBar() != null) {
             getSupportActionBar().hide();
@@ -113,12 +119,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         opisParametrow = findViewById(R.id.opis_parametrow);
 
-        // === TUTAJ JEST ZMIANA WYGLĄDU ===
-        opisParametrow.setTextSize(20); // Zwiększenie czcionki (było pewnie domyślne 14)
-        opisParametrow.setTypeface(null, Typeface.BOLD); // Pogrubienie tekstu
-        opisParametrow.setGravity(Gravity.CENTER); // Wyśrodkowanie tekstu
-        opisParametrow.setPadding(40, 40, 40, 40); // Marginesy wewnętrzne, żeby tekst nie dotykał brzegów
-        // =================================
+        opisParametrow.setTextSize(20);
+        opisParametrow.setTypeface(null, Typeface.BOLD);
+        opisParametrow.setGravity(Gravity.CENTER);
+        opisParametrow.setPadding(40, 40, 40, 40);
 
         opisParametrow.setOnClickListener(v -> {
             if (aktualnieWybranyEkran == EKRAN_GPS) {
@@ -170,35 +174,73 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private void setupButtons() {
         findViewById(R.id.btn_ogolne).setOnClickListener(v -> {
             aktualnieWybranyEkran = EKRAN_OGOLNE;
+            stopRamRefresher();
+            startRamRefresher();
             zatrzymajNasluchiwanieGPS();
-            wyswietlInformacjeOgolne();
         });
 
         findViewById(R.id.btn_gps).setOnClickListener(v -> {
             aktualnieWybranyEkran = EKRAN_GPS;
+            stopRamRefresher();
             wyswietlInformacjeGPS();
             sprawdzIpoprosOPermISjeGPS();
         });
 
         findViewById(R.id.btn_zyroskop).setOnClickListener(v -> {
             aktualnieWybranyEkran = EKRAN_ZYROSKOP;
+            stopRamRefresher();
             zatrzymajNasluchiwanieGPS();
             wyswietlZyroskop();
         });
 
         findViewById(R.id.btn_system).setOnClickListener(v -> {
             aktualnieWybranyEkran = EKRAN_SYSTEM;
+            stopRamRefresher();
             zatrzymajNasluchiwanieGPS();
             wyswietlInformacjeSystemowe();
         });
 
         findViewById(R.id.btn_aplikacja).setOnClickListener(v -> {
             aktualnieWybranyEkran = EKRAN_APLIKACJA;
+            stopRamRefresher();
             zatrzymajNasluchiwanieGPS();
-            opisParametrow.setText("DANE APLIKACJI\n-----------------------------------\n\n" +
-                    "• Wersja: 1.1 UI Fix\n• Status: Aktywna");
+            opisParametrow.setText(
+                    "DANE APLIKACJI\n-----------------------------------\n\n" +
+                            "• Wersja: 1.5\n" +
+                            "• Status: Aktywna\n\n" +
+                            "WYMAGANE UPRAWNIENIA:\n" +
+                            "• Lokalizacja (GPS/Sieć)\n" +
+                            "• Internet (Pogoda/Mapy)\n" +
+                            "• Stan telefonu (Bateria)\n\n" +
+                            "WYKORZYSTYWANE SENSORY:\n" +
+                            "• Żyroskop\n" +
+                            "• Akcelerometr\n" +
+                            "• Czujnik światła"
+            );
         });
     }
+
+    // --- LOGIKA ODŚWIEŻANIA RAM ---
+    private void setupRamRefresher() {
+        ramRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (aktualnieWybranyEkran == EKRAN_OGOLNE) {
+                    wyswietlInformacjeOgolne();
+                    ramHandler.postDelayed(this, 1000); // Odświeżaj co 1 sekundę
+                }
+            }
+        };
+    }
+
+    private void startRamRefresher() {
+        ramHandler.post(ramRunnable);
+    }
+
+    private void stopRamRefresher() {
+        ramHandler.removeCallbacks(ramRunnable);
+    }
+    // ------------------------------
 
     private void otworzMapyGoogle() {
         try {
@@ -217,7 +259,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         }
     }
-//Funkcja Pokazywania pogody
+
     private void pobierzDanePogodowe(double lat, double lon) {
         executorService.execute(() -> {
             String response = "";
@@ -291,17 +333,44 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
+    // === ZMIENIONE: OGÓLNE (LIVE RAM, BATERIA BEZ TOTALU) ===
     private void wyswietlInformacjeOgolne() {
         ActivityManager.MemoryInfo memInfo = new ActivityManager.MemoryInfo();
         ((ActivityManager) getSystemService(Context.ACTIVITY_SERVICE)).getMemoryInfo(memInfo);
-        double totalRamGB = memInfo.totalMem / (1024.0 * 1024.0 * 1024.0);
 
-        String batteryStatusStr = "Ładowanie...";
+        double totalRamGB = memInfo.totalMem / (1024.0 * 1024.0 * 1024.0);
+        double availRamGB = memInfo.availMem / (1024.0 * 1024.0 * 1024.0);
+
+        // Pobieranie danych baterii
         Intent batteryStatus = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        String batteryPctStr = "---";
+        String batteryTempStr = "---";
+        String batteryVoltStr = "---";
+
         if (batteryStatus != null) {
             int level = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
             int scale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
-            batteryStatusStr = (int) ((level / (float) scale) * 100) + "%";
+            if (level != -1 && scale != -1) {
+                batteryPctStr = (int) ((level / (float) scale) * 100) + "%";
+            }
+            int temp = batteryStatus.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0);
+            batteryTempStr = String.format(Locale.US, "%.1f°C", temp / 10.0f);
+
+            int voltage = batteryStatus.getIntExtra(BatteryManager.EXTRA_VOLTAGE, 0);
+            batteryVoltStr = voltage + " mV";
+        }
+
+        // Pojemność (tylko aktualna, bez szacowania całkowitej)
+        BatteryManager mBatteryManager = (BatteryManager) getSystemService(Context.BATTERY_SERVICE);
+        long chargeCounter = 0;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            chargeCounter = mBatteryManager.getLongProperty(BatteryManager.BATTERY_PROPERTY_CHARGE_COUNTER);
+        }
+
+        String batteryCurrentCapacity = "Niedostępne";
+        if (chargeCounter > 0) {
+            long currentCapacityMah = chargeCounter / 1000;
+            batteryCurrentCapacity = currentCapacityMah + " mAh";
         }
 
         String infoText = String.format(Locale.getDefault(),
@@ -309,11 +378,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         "-----------------------------------\n" +
                         "• Model: %s\n" +
                         "• Producent: %s\n\n" +
-                        "PAMIĘĆ I BATERIA\n" +
+                        "PAMIĘĆ RAM \n" +
                         "-----------------------------------\n" +
-                        "• RAM: %.2f GB\n" +
-                        "• Bateria: %s",
-                Build.MODEL, Build.MANUFACTURER, totalRamGB, batteryStatusStr);
+                        "• Wolne: %.2f GB\n" +
+                        "• Całkowite: %.2f GB\n\n" +
+                        "BATERIA\n" +
+                        "-----------------------------------\n" +
+                        "• Poziom: %s\n" +
+                        "• Temperatura: %s\n" +
+                        "• Napięcie: %s\n" +
+                        "• Pojemność (Aktualna): %s",
+                Build.MODEL, Build.MANUFACTURER,
+                availRamGB, totalRamGB,
+                batteryPctStr, batteryTempStr, batteryVoltStr, batteryCurrentCapacity);
         opisParametrow.setText(infoText);
     }
 
@@ -336,6 +413,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         opisParametrow.setText(sb.toString());
     }
 
+    // === ZMIENIONE: ŻYROSKOP (BEZ NAZWY SENSORA I GRAWITACJI) ===
     private void wyswietlZyroskop() {
         String info = String.format(Locale.US,
                 "ŻYROSKOP (Rad/s)\n-----------------------------------\n" +
@@ -348,13 +426,42 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     private void wyswietlInformacjeSystemowe() {
+        DisplayMetrics metrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(metrics);
+
+        int cores = Runtime.getRuntime().availableProcessors();
+        String cpuFreq = getCpuFreq();
+
         String info = String.format(Locale.US,
-                "INFORMACJE SYSTEMOWE\n-----------------------------------\n\n" +
+                "PROCESOR\n-----------------------------------\n" +
+                        "• Rdzenie: %d\n" +
+                        "• Taktowanie: %s\n" +
+                        "• Architektura: %s\n\n" +
+                        "INFORMACJE SYSTEMOWE\n-----------------------------------\n" +
                         "• Światło: %.1f lx\n" +
-                        "• Android: %s (API %d)\n" +
-                        "• CPU: %s",
-                aktualneSwiatloLx, Build.VERSION.RELEASE, Build.VERSION.SDK_INT, Build.SUPPORTED_ABIS[0]);
+                        "• Android: %s (API %d)\n\n" +
+                        "EKRAN\n-----------------------------------\n" +
+                        "• Rozdzielczość: %dx%d px\n" +
+                        "• Gęstość: %d dpi",
+                cores, cpuFreq, Build.SUPPORTED_ABIS[0],
+                aktualneSwiatloLx, Build.VERSION.RELEASE, Build.VERSION.SDK_INT,
+                metrics.widthPixels, metrics.heightPixels, metrics.densityDpi);
         opisParametrow.setText(info);
+    }
+
+    private String getCpuFreq() {
+        try {
+            RandomAccessFile reader = new RandomAccessFile("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq", "r");
+            String line = reader.readLine();
+            reader.close();
+            if (line != null) {
+                long freq = Long.parseLong(line);
+                return String.format(Locale.US, "%.2f GHz", freq / 1000000.0);
+            }
+        } catch (Exception e) {
+            return "Nieznane";
+        }
+        return "---";
     }
 
     private String pobierzAdres(double lat, double lon) {
@@ -452,9 +559,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onResume();
         if (sensorManager != null) {
             if (lightSensor != null) sensorManager.registerListener(this, lightSensor, SensorManager.SENSOR_DELAY_NORMAL);
-            if (gyroscopeSensor != null) sensorManager.registerListener(this, gyroscopeSensor, SensorManager.SENSOR_DELAY_UI);
-            if (accelerometerSensor != null) sensorManager.registerListener(this, accelerometerSensor, SensorManager.SENSOR_DELAY_UI);
+            if (gyroscopeSensor != null) sensorManager.registerListener(this, gyroscopeSensor, SensorManager.SENSOR_DELAY_NORMAL);
+            if (accelerometerSensor != null) sensorManager.registerListener(this, accelerometerSensor, SensorManager.SENSOR_DELAY_NORMAL);
         }
+
+        // Wznawiamy odświeżanie RAM jeśli jesteśmy na ekranie ogólnym
+        if (aktualnieWybranyEkran == EKRAN_OGOLNE) {
+            startRamRefresher();
+        }
+
         if (aktualnieWybranyEkran == EKRAN_GPS) {
             uruchomNasluchiwanieGPS();
         }
@@ -464,6 +577,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected void onPause() {
         super.onPause();
         if (sensorManager != null) sensorManager.unregisterListener(this);
+        stopRamRefresher(); // Zatrzymujemy pętlę, żeby nie żarła baterii w tle
         zatrzymajNasluchiwanieGPS();
     }
 }
