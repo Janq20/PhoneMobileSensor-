@@ -114,10 +114,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         opisParametrow = findViewById(R.id.opis_parametrow);
 
         // === TUTAJ JEST ZMIANA WYGLĄDU ===
-        opisParametrow.setTextSize(20); // Zwiększenie czcionki (było pewnie domyślne 14)
+        opisParametrow.setTextSize(20); // Zwiększenie czcionki
         opisParametrow.setTypeface(null, Typeface.BOLD); // Pogrubienie tekstu
         opisParametrow.setGravity(Gravity.CENTER); // Wyśrodkowanie tekstu
-        opisParametrow.setPadding(40, 40, 40, 40); // Marginesy wewnętrzne, żeby tekst nie dotykał brzegów
+        opisParametrow.setPadding(40, 40, 40, 40); // Marginesy wewnętrzne
         // =================================
 
         opisParametrow.setOnClickListener(v -> {
@@ -217,7 +217,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         }
     }
-//Funkcja Pokazywania pogody
+    //Funkcja Pokazywania pogody
     private void pobierzDanePogodowe(double lat, double lon) {
         executorService.execute(() -> {
             String response = "";
