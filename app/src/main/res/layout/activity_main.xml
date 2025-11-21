@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#FFFFFF"
+    android:gravity="center_horizontal"
+    android:padding="0dp">
+
+    <ImageView
+        android:id="@+id/logo"
+        android:layout_width="wrap_content"
+        android:layout_height="80dp"
+        android:src="@drawable/psm"
+        android:adjustViewBounds="true"
+        android:scaleType="fitCenter"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="0dp"
+        android:layout_marginBottom="0dp"
+        android:contentDescription="Logo aplikacji" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="55dp"
+        android:orientation="horizontal"
+        android:weightSum="5"
+        android:gravity="center"
+        android:layout_marginTop="0dp"
+        android:layout_marginBottom="0dp"
+        android:padding="0dp">
+
+        <Button
+            android:id="@+id/btn_ogolne"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="OGÓLNE"
+            android:textAllCaps="true"
+            android:textColor="#FFFFFF"
+            android:textSize="8sp"
+            android:backgroundTint="#FF6666"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:strokeColor="#000000"
+            app:strokeWidth="2dp"
+            app:cornerRadius="0dp" />
+
+        <Button
+            android:id="@+id/btn_gps"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="GPS"
+            android:textAllCaps="true"
+            android:textColor="#000000"
+            android:textSize="8sp"
+            android:backgroundTint="#33CCFF"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:strokeColor="#000000"
+            app:strokeWidth="2dp"
+            app:cornerRadius="0dp" />
+
+        <Button
+            android:id="@+id/btn_zyroskop"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="ŻYROSKOP"
+            android:textAllCaps="true"
+            android:textColor="#FFFFFF"
+            android:textSize="8sp"
+            android:backgroundTint="#CC66FF"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:strokeColor="#000000"
+            app:strokeWidth="2dp"
+            app:cornerRadius="0dp" />
+
+        <Button
+            android:id="@+id/btn_system"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="SYSTEM"
+            android:textAllCaps="true"
+            android:textColor="#FFFFFF"
+            android:textSize="8sp"
+            android:backgroundTint="#6666FF"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:strokeColor="#000000"
+            app:strokeWidth="2dp"
+            app:cornerRadius="0dp" />
+
+        <Button
+            android:id="@+id/btn_aplikacja"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="APLIKACJA"
+            android:textAllCaps="true"
+            android:textColor="#000000"
+            android:textSize="8sp"
+            android:backgroundTint="#FF9933"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:strokeColor="#000000"
+            app:strokeWidth="2dp"
+            app:cornerRadius="0dp" />
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#33B5FF"
+        android:padding="12dp"
+        android:fillViewport="true"
+        android:layout_marginTop="0dp">
+
+        <TextView
+            android:id="@+id/opis_parametrow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="OPIS PARAMETRÓW"
+            android:textColor="#000000"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:padding="8dp" />
+    </ScrollView>
+
+</LinearLayout>
