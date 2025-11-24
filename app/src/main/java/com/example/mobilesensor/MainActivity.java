@@ -1,7 +1,7 @@
 package com.example.mobilesensor;
 
 // =================================================================
-// IMPORTY
+// ===== BIBLIOTEKI =====
 // =================================================================
 import android.Manifest;
 import android.app.ActivityManager;
@@ -32,14 +32,11 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-
 import org.json.JSONObject;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -54,7 +51,7 @@ import java.util.concurrent.Executors;
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
 
     // =================================================================
-    // KONFIGURACJA
+    // ===== KONFIGURACJA =====
     // =================================================================
     private static final String API_KEY = "73388daab4f30826e3f8cca01c2ddb04";
     private static final String WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather?lat=%f&lon=%f&appid=%s&units=metric&lang=pl";
@@ -67,7 +64,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private static final int EKRAN_APLIKACJA = 5;
 
     // =================================================================
-    // ZMIENNE
+    // ===== ZMIENNE =====
     // =================================================================
     private TextView opisParametrow;
     private int aktualnieWybranyEkran = EKRAN_OGOLNE;
@@ -91,10 +88,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
-    // Handler do odświeżania RAMu
     private final Handler ramHandler = new Handler(Looper.getMainLooper());
     private Runnable ramRunnable;
 
+    // =================================================================
+    // ===== CYKL ŻYCIA APLIKACJI =====
+    // =================================================================
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -104,12 +103,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         setupSensors();
         setupLocation();
         setupButtons();
-        setupRamRefresher(); // Konfiguracja odświeżania
+        setupRamRefresher();
         startRamRefresher();
         sprawdzIpoprosOPermISjeGPS();
     }
 
-    // --- KONFIGURACJA UI ---
+    // =================================================================
+    // ===== KONFIGURACJA UI =====
+    // =================================================================
     private void setupUI() {
         if (getSupportActionBar() != null) {
             getSupportActionBar().hide();
@@ -135,6 +136,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         });
     }
 
+    // =================================================================
+    // ===== KONFIGURACJA SENSORÓW I LOKALIZACJI =====
+    // =================================================================
     private void setupSensors() {
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         if (sensorManager != null) {
@@ -171,6 +175,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         };
     }
 
+    // =================================================================
+    // ===== OBSŁUGA PRZYCISKÓW =====
+    // =================================================================
     private void setupButtons() {
         findViewById(R.id.btn_ogolne).setOnClickListener(v -> {
             aktualnieWybranyEkran = EKRAN_OGOLNE;
@@ -220,7 +227,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         });
     }
 
-    // --- LOGIKA ODŚWIEŻANIA RAM ---
+    // =================================================================
+    // ===== LOGIKA ODŚWIEŻANIA RAM =====
+    // =================================================================
     private void setupRamRefresher() {
         ramRunnable = new Runnable() {
             @Override
@@ -240,8 +249,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private void stopRamRefresher() {
         ramHandler.removeCallbacks(ramRunnable);
     }
-    // ------------------------------
 
+    // =================================================================
+    // ===== FUNKCJE POMOCNICZE (MAPY, POGODA) =====
+    // =================================================================
     private void otworzMapyGoogle() {
         try {
             String uri = String.format(Locale.US, "geo:%f,%f?q=%f,%f(Tu jesteś)",
@@ -333,15 +344,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
-    // === ZMIENIONE: OGÓLNE (LIVE RAM, BATERIA BEZ TOTALU) ===
+    // =================================================================
+    // ===== WYŚWIETLANIE INFORMACJI (OGÓLNE, GPS, ŻYROSKOP, SYSTEM) =====
+    // =================================================================
+
+
     private void wyswietlInformacjeOgolne() {
         ActivityManager.MemoryInfo memInfo = new ActivityManager.MemoryInfo();
         ((ActivityManager) getSystemService(Context.ACTIVITY_SERVICE)).getMemoryInfo(memInfo);
 
         double totalRamGB = memInfo.totalMem / (1024.0 * 1024.0 * 1024.0);
         double availRamGB = memInfo.availMem / (1024.0 * 1024.0 * 1024.0);
-
-        // Pobieranie danych baterii
         Intent batteryStatus = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
         String batteryPctStr = "---";
         String batteryTempStr = "---";
@@ -359,19 +372,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             int voltage = batteryStatus.getIntExtra(BatteryManager.EXTRA_VOLTAGE, 0);
             batteryVoltStr = voltage + " mV";
         }
-
-        // Pojemność (tylko aktualna, bez szacowania całkowitej)
-        BatteryManager mBatteryManager = (BatteryManager) getSystemService(Context.BATTERY_SERVICE);
-        long chargeCounter = 0;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            chargeCounter = mBatteryManager.getLongProperty(BatteryManager.BATTERY_PROPERTY_CHARGE_COUNTER);
-        }
-
-        String batteryCurrentCapacity = "Niedostępne";
-        if (chargeCounter > 0) {
-            long currentCapacityMah = chargeCounter / 1000;
-            batteryCurrentCapacity = currentCapacityMah + " mAh";
-        }
+        double batteryCapacity = getBatteryCapacity(this);
+        String batteryCapacityStr = String.format(Locale.US, "%.0f mAh", batteryCapacity);
 
         String infoText = String.format(Locale.getDefault(),
                 "INFORMACJE O URZĄDZENIU\n" +
@@ -387,11 +389,33 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         "• Poziom: %s\n" +
                         "• Temperatura: %s\n" +
                         "• Napięcie: %s\n" +
-                        "• Pojemność (Aktualna): %s",
+                        "• Pojemność (Fabryczna): %s",
                 Build.MODEL, Build.MANUFACTURER,
                 availRamGB, totalRamGB,
-                batteryPctStr, batteryTempStr, batteryVoltStr, batteryCurrentCapacity);
+                batteryPctStr, batteryTempStr, batteryVoltStr, batteryCapacityStr);
         opisParametrow.setText(infoText);
+    }
+
+    // --- NOWA FUNKCJA POMOCNICZA DO BATERII ---
+    public double getBatteryCapacity(Context context) {
+        Object mPowerProfile;
+        double batteryCapacity = 0;
+        final String POWER_PROFILE_CLASS = "com.android.internal.os.PowerProfile";
+
+        try {
+            mPowerProfile = Class.forName(POWER_PROFILE_CLASS)
+                    .getConstructor(Context.class)
+                    .newInstance(context);
+
+            batteryCapacity = (double) Class.forName(POWER_PROFILE_CLASS)
+                    .getMethod("getBatteryCapacity")
+                    .invoke(mPowerProfile);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return batteryCapacity;
     }
 
     private void wyswietlInformacjeGPS() {
@@ -413,7 +437,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         opisParametrow.setText(sb.toString());
     }
 
-    // === ZMIENIONE: ŻYROSKOP (BEZ NAZWY SENSORA I GRAWITACJI) ===
     private void wyswietlZyroskop() {
         String info = String.format(Locale.US,
                 "ŻYROSKOP (Rad/s)\n-----------------------------------\n" +
@@ -464,6 +487,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         return "---";
     }
 
+    // =================================================================
+    // ===== GEOKODOWANIE =====
+    // =================================================================
     private String pobierzAdres(double lat, double lon) {
         if (!Geocoder.isPresent()) return "Geokodowanie niedostępne";
         try {
@@ -480,6 +506,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         return "Adres nieznany";
     }
 
+    // =================================================================
+    // ===== UPRAWNIENIA I LOKALIZACJA (LOGIKA) =====
+    // =================================================================
     private void sprawdzIpoprosOPermISjeGPS() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             uruchomNasluchiwanieGPS();
@@ -523,6 +552,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
+    // =================================================================
+    // ===== OBSŁUGA SENSORÓW (ZMIANY WARTOŚCI) =====
+    // =================================================================
     @Override
     public void onSensorChanged(SensorEvent event) {
         switch (event.sensor.getType()) {
@@ -554,6 +586,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         getWindow().setAttributes(layout);
     }
 
+    // =================================================================
+    // ===== ZARZĄDZANIE STANEM (RESUME/PAUSE) =====
+    // =================================================================
     @Override
     protected void onResume() {
         super.onResume();
@@ -563,7 +598,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             if (accelerometerSensor != null) sensorManager.registerListener(this, accelerometerSensor, SensorManager.SENSOR_DELAY_NORMAL);
         }
 
-        // Wznawiamy odświeżanie RAM jeśli jesteśmy na ekranie ogólnym
         if (aktualnieWybranyEkran == EKRAN_OGOLNE) {
             startRamRefresher();
         }
@@ -577,7 +611,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected void onPause() {
         super.onPause();
         if (sensorManager != null) sensorManager.unregisterListener(this);
-        stopRamRefresher(); // Zatrzymujemy pętlę, żeby nie żarła baterii w tle
+        stopRamRefresher();
         zatrzymajNasluchiwanieGPS();
     }
 }
