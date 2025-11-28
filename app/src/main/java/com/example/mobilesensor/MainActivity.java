@@ -6,6 +6,8 @@ package com.example.mobilesensor;
 import android.Manifest;
 import android.app.ActivityManager;
 import android.content.ActivityNotFoundException;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -15,6 +17,8 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraManager;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
@@ -26,10 +30,13 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.util.DisplayMetrics;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
@@ -85,6 +92,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private double aktualnaDlugosc = 0.0;
     private float aktualnaDokladnosc = 0.0f;
 
+    private CameraManager cameraManager;
+    private String cameraId;
+    private boolean isFlashlightOn = false;
+
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
@@ -102,6 +113,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         setupUI();
         setupSensors();
         setupLocation();
+        setupFlashlight();
         setupButtons();
         setupRamRefresher();
         startRamRefresher();
@@ -124,20 +136,29 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         opisParametrow.setTypeface(null, Typeface.BOLD);
         opisParametrow.setGravity(Gravity.CENTER);
         opisParametrow.setPadding(40, 40, 40, 40);
-
         opisParametrow.setOnClickListener(v -> {
             if (aktualnieWybranyEkran == EKRAN_GPS) {
                 if (aktualnaSzerokosc != 0.0 && aktualnaDlugosc != 0.0) {
+                    wibruj(50);
                     otworzMapyGoogle();
                 } else {
                     Toast.makeText(this, "Brak współrzędnych GPS. Czekam na sygnał...", Toast.LENGTH_SHORT).show();
                 }
+            } else if (aktualnieWybranyEkran == EKRAN_SYSTEM) {
+                wibruj(50);
+                przelaczLatarke();
             }
+        });
+
+        opisParametrow.setOnLongClickListener(v -> {
+            wibruj(100);
+            kopiujDoSchowka(opisParametrow.getText().toString());
+            return true;
         });
     }
 
     // =================================================================
-    // ===== KONFIGURACJA SENSORÓW I LOKALIZACJI =====
+    // ===== KONFIGURACJA SENSORÓW, LATARKI I LOKALIZACJI =====
     // =================================================================
     private void setupSensors() {
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -145,6 +166,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
             gyroscopeSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
             accelerometerSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        }
+    }
+
+    private void setupFlashlight() {
+        cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+        try {
+            if (cameraManager != null) {
+                cameraId = cameraManager.getCameraIdList()[0];
+            }
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
         }
     }
 
@@ -179,52 +211,51 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     // ===== OBSŁUGA PRZYCISKÓW =====
     // =================================================================
     private void setupButtons() {
-        findViewById(R.id.btn_ogolne).setOnClickListener(v -> {
-            aktualnieWybranyEkran = EKRAN_OGOLNE;
-            stopRamRefresher();
-            startRamRefresher();
-            zatrzymajNasluchiwanieGPS();
-        });
-
-        findViewById(R.id.btn_gps).setOnClickListener(v -> {
-            aktualnieWybranyEkran = EKRAN_GPS;
-            stopRamRefresher();
-            wyswietlInformacjeGPS();
-            sprawdzIpoprosOPermISjeGPS();
-        });
-
-        findViewById(R.id.btn_zyroskop).setOnClickListener(v -> {
-            aktualnieWybranyEkran = EKRAN_ZYROSKOP;
+        View.OnClickListener listener = v -> {
+            wibruj(30); // Krótka wibracja przy zmianie karty
             stopRamRefresher();
             zatrzymajNasluchiwanieGPS();
-            wyswietlZyroskop();
-        });
 
-        findViewById(R.id.btn_system).setOnClickListener(v -> {
-            aktualnieWybranyEkran = EKRAN_SYSTEM;
-            stopRamRefresher();
-            zatrzymajNasluchiwanieGPS();
-            wyswietlInformacjeSystemowe();
-        });
+            int id = v.getId();
+            if (id == R.id.btn_ogolne) {
+                aktualnieWybranyEkran = EKRAN_OGOLNE;
+                startRamRefresher();
+            } else if (id == R.id.btn_gps) {
+                aktualnieWybranyEkran = EKRAN_GPS;
+                wyswietlInformacjeGPS();
+                sprawdzIpoprosOPermISjeGPS();
+            } else if (id == R.id.btn_zyroskop) {
+                aktualnieWybranyEkran = EKRAN_ZYROSKOP;
+                wyswietlZyroskop();
+            } else if (id == R.id.btn_system) {
+                aktualnieWybranyEkran = EKRAN_SYSTEM;
+                wyswietlInformacjeSystemowe();
+            } else if (id == R.id.btn_aplikacja) {
+                aktualnieWybranyEkran = EKRAN_APLIKACJA;
+                opisParametrow.setText(daneAplikacjiTekst());
+            }
+        };
 
-        findViewById(R.id.btn_aplikacja).setOnClickListener(v -> {
-            aktualnieWybranyEkran = EKRAN_APLIKACJA;
-            stopRamRefresher();
-            zatrzymajNasluchiwanieGPS();
-            opisParametrow.setText(
-                    "DANE APLIKACJI\n-----------------------------------\n\n" +
-                            "• Wersja: 1.5\n" +
-                            "• Status: Aktywna\n\n" +
-                            "WYMAGANE UPRAWNIENIA:\n" +
-                            "• Lokalizacja (GPS/Sieć)\n" +
-                            "• Internet (Pogoda/Mapy)\n" +
-                            "• Stan telefonu (Bateria)\n\n" +
-                            "WYKORZYSTYWANE SENSORY:\n" +
-                            "• Żyroskop\n" +
-                            "• Akcelerometr\n" +
-                            "• Czujnik światła"
-            );
-        });
+        findViewById(R.id.btn_ogolne).setOnClickListener(listener);
+        findViewById(R.id.btn_gps).setOnClickListener(listener);
+        findViewById(R.id.btn_zyroskop).setOnClickListener(listener);
+        findViewById(R.id.btn_system).setOnClickListener(listener);
+        findViewById(R.id.btn_aplikacja).setOnClickListener(listener);
+    }
+
+    private String daneAplikacjiTekst() {
+        return "DANE APLIKACJI\n-----------------------------------\n\n" +
+                "• Wersja: 1.5\n" +
+                "• Status: Aktywna\n\n" +
+                "WYMAGANE UPRAWNIENIA:\n" +
+                "• Lokalizacja (GPS/Sieć)\n" +
+                "• Internet (Pogoda/Mapy)\n" +
+                "• Stan telefonu (Bateria)\n" +
+                "• Aparat (Latarka)\n\n" +
+                "WYKORZYSTYWANE SENSORY:\n" +
+                "• Żyroskop\n" +
+                "• Akcelerometr\n" +
+                "• Czujnik światła";
     }
 
     // =================================================================
@@ -251,7 +282,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     // =================================================================
-    // ===== FUNKCJE POMOCNICZE (MAPY, POGODA) =====
+    // ===== FUNKCJE POMOCNICZE (MAPY, POGODA, LATARKA, WIBRACJA, SCHOWEK) =====
     // =================================================================
     private void otworzMapyGoogle() {
         try {
@@ -260,15 +291,44 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             Intent mapIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
             startActivity(mapIntent);
         } catch (ActivityNotFoundException e) {
-            try {
-                String url = String.format(Locale.US, "https://www.google.com/maps/search/?api=1&query=%f,%f",
-                        aktualnaSzerokosc, aktualnaDlugosc);
-                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-                startActivity(browserIntent);
-            } catch (Exception ex) {
-                Toast.makeText(this, "Nie znaleziono aplikacji map.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Nie znaleziono aplikacji map.", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void przelaczLatarke() {
+        if (cameraManager == null || cameraId == null) {
+            Toast.makeText(this, "Brak dostępu do latarki", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        try {
+            cameraManager.setTorchMode(cameraId, !isFlashlightOn);
+            isFlashlightOn = !isFlashlightOn;
+            if (aktualnieWybranyEkran == EKRAN_SYSTEM) {
+                wyswietlInformacjeSystemowe();
+            }
+            Toast.makeText(this, isFlashlightOn ? "Latarka włączona" : "Latarka wyłączona", Toast.LENGTH_SHORT).show();
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Błąd latarki", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void wibruj(int milisekundy) {
+        Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+        if (v != null && v.hasVibrator()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                v.vibrate(VibrationEffect.createOneShot(milisekundy, VibrationEffect.DEFAULT_AMPLITUDE));
+            } else {
+                v.vibrate(milisekundy);
             }
         }
+    }
+
+    private void kopiujDoSchowka(String text) {
+        ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+        ClipData clip = ClipData.newPlainText("DaneSensora", text);
+        clipboard.setPrimaryClip(clip);
+        Toast.makeText(this, "Skopiowano dane do schowka!", Toast.LENGTH_SHORT).show();
     }
 
     private void pobierzDanePogodowe(double lat, double lon) {
@@ -345,9 +405,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     // =================================================================
-    // ===== WYŚWIETLANIE INFORMACJI (OGÓLNE, GPS, ŻYROSKOP, SYSTEM) =====
+    // ===== WYŚWIETLANIE INFORMACJI =====
     // =================================================================
-
 
     private void wyswietlInformacjeOgolne() {
         ActivityManager.MemoryInfo memInfo = new ActivityManager.MemoryInfo();
@@ -389,14 +448,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         "• Poziom: %s\n" +
                         "• Temperatura: %s\n" +
                         "• Napięcie: %s\n" +
-                        "• Pojemność (Fabryczna): %s",
+                        "• Pojemność (Fabryczna): %s\n\n" +
+                        "(Przytrzymaj tekst, aby skopiować)",
                 Build.MODEL, Build.MANUFACTURER,
                 availRamGB, totalRamGB,
                 batteryPctStr, batteryTempStr, batteryVoltStr, batteryCapacityStr);
         opisParametrow.setText(infoText);
     }
 
-    // --- NOWA FUNKCJA POMOCNICZA DO BATERII ---
     public double getBatteryCapacity(Context context) {
         Object mPowerProfile;
         double batteryCapacity = 0;
@@ -414,7 +473,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         } catch (Exception e) {
             e.printStackTrace();
         }
-
         return batteryCapacity;
     }
 
@@ -442,7 +500,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 "ŻYROSKOP (Rad/s)\n-----------------------------------\n" +
                         "X: %.2f\nY: %.2f\nZ: %.2f\n\n" +
                         "AKCELEROMETR (m/s²)\n-----------------------------------\n" +
-                        "X: %.2f\nY: %.2f\nZ: %.2f",
+                        "X: %.2f\nY: %.2f\nZ: %.2f\n\n",
                 aktualnyZyroskop[0], aktualnyZyroskop[1], aktualnyZyroskop[2],
                 aktualnyAkcelerometr[0], aktualnyAkcelerometr[1], aktualnyAkcelerometr[2]);
         opisParametrow.setText(info);
@@ -454,6 +512,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         int cores = Runtime.getRuntime().availableProcessors();
         String cpuFreq = getCpuFreq();
+        String latarkaStatus = isFlashlightOn ? "Włączona 💡" : "Wyłączona";
 
         String info = String.format(Locale.US,
                 "PROCESOR\n-----------------------------------\n" +
@@ -462,12 +521,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         "• Architektura: %s\n\n" +
                         "INFORMACJE SYSTEMOWE\n-----------------------------------\n" +
                         "• Światło: %.1f lx\n" +
-                        "• Android: %s (API %d)\n\n" +
+                        "• Android: %s (API %d)\n" +
+                        "• Latarka: %s (Kliknij, aby przełączyć)\n\n" +
                         "EKRAN\n-----------------------------------\n" +
                         "• Rozdzielczość: %dx%d px\n" +
                         "• Gęstość: %d dpi",
                 cores, cpuFreq, Build.SUPPORTED_ABIS[0],
                 aktualneSwiatloLx, Build.VERSION.RELEASE, Build.VERSION.SDK_INT,
+                latarkaStatus,
                 metrics.widthPixels, metrics.heightPixels, metrics.densityDpi);
         opisParametrow.setText(info);
     }
@@ -613,5 +674,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if (sensorManager != null) sensorManager.unregisterListener(this);
         stopRamRefresher();
         zatrzymajNasluchiwanieGPS();
+        if (isFlashlightOn) {
+            try {
+                cameraManager.setTorchMode(cameraId, false);
+                isFlashlightOn = false;
+            } catch (Exception e) {}
+        }
     }
 }
