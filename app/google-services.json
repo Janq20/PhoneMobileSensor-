@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "889828740600",
+    "project_id": "mobilesensormonitor",
+    "storage_bucket": "mobilesensormonitor.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:889828740600:android:11478c82999e0cc8609a0d",
+        "android_client_info": {
+          "package_name": "com.example.mobilesensor"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBkBhme3FG8u5BF6DJ9xVFu0r0_PZWsmOg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
