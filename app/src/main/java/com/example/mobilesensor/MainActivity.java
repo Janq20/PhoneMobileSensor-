@@ -2,6 +2,7 @@ package com.example.mobilesensor;
 
 /* ==== BIBLIOTEKI STANDARDOWE ANDROID ==== */
 import android.Manifest;
+import android.annotation.SuppressLint; // WAŻNE!
 import android.app.ActivityManager;
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -99,7 +100,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private LineChart chartBattery;
     private LineChart chartTemp;
     private LineChart chartLight;
-    private LineChart chartCpu; // Nowy wykres
+    private LineChart chartCpu;
 
     private int aktualnieWybranyEkran = EKRAN_OGOLNE;
 
@@ -224,13 +225,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         setupSingleChart(chartBattery, Color.YELLOW, 0, 100);
         setupSingleChart(chartTemp, Color.RED, 15, 50);
         setupSingleChart(chartLight, Color.CYAN, 0, 1000);
-        setupSingleChart(chartCpu, Color.MAGENTA, 0, 3.5f); // CPU ok. 0-3.5 GHz
+        setupSingleChart(chartCpu, Color.MAGENTA, 0, 3.5f);
 
         // Resetowanie autoscale
-        chartLight.getAxisLeft().resetAxisMaximum();
-        chartLight.getAxisLeft().resetAxisMinimum();
-        chartRam.getAxisLeft().resetAxisMaximum();
-        chartCpu.getAxisLeft().resetAxisMaximum();
+        if(chartLight != null && chartLight.getAxisLeft() != null) {
+            chartLight.getAxisLeft().resetAxisMaximum();
+            chartLight.getAxisLeft().resetAxisMinimum();
+        }
+        if(chartRam != null && chartRam.getAxisLeft() != null) chartRam.getAxisLeft().resetAxisMaximum();
+        if(chartCpu != null && chartCpu.getAxisLeft() != null) chartCpu.getAxisLeft().resetAxisMaximum();
 
         opisParametrow.setOnClickListener(v -> {
             if (aktualnieWybranyEkran == EKRAN_GPS) {
@@ -249,6 +252,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     private void setupSingleChart(LineChart chart, int color, float min, float max) {
+        if (chart == null) return;
         chart.getDescription().setEnabled(false);
         chart.setTouchEnabled(false);
         chart.setDragEnabled(false);
@@ -341,7 +345,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     batteryTemp = tempInt / 10.0f;
                 }
 
-                // 3. DANE CPU (GHz) - NOWE
+                // 3. DANE CPU (GHz)
                 float cpuFreq = getCpuFreqFloat();
 
                 // 4. AKTUALIZACJA WYKRESÓW
@@ -350,7 +354,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     updateSingleChart(chartBattery, batteryPct, Color.YELLOW);
                     updateSingleChart(chartTemp, batteryTemp, Color.RED);
                     updateSingleChart(chartLight, aktualneSwiatloLx, Color.CYAN);
-                    updateSingleChart(chartCpu, cpuFreq, Color.MAGENTA); // Nowy wykres
+                    updateSingleChart(chartCpu, cpuFreq, Color.MAGENTA);
                 }
 
                 // Zbieranie próbek do średniej
@@ -378,7 +382,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                             zaokraglij(avgFreeRam, 0),
                             (int)batteryPct,
                             zaokraglij(avgTemp, 1),
-                            zaokraglij(avgCpu, 2) // CPU do bazy
+                            zaokraglij(avgCpu, 2)
                     );
 
                     firebaseDeviceRef.push().setValue(sample)
@@ -393,13 +397,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         };
     }
 
-    // Odczyt CPU z pliku systemowego
     private float getCpuFreqFloat() {
         try {
             RandomAccessFile reader = new RandomAccessFile("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq", "r");
             String line = reader.readLine();
             reader.close();
-            // Wartość jest w kHz, dzielimy przez 1mln żeby mieć GHz
             return Float.parseFloat(line) / 1000000.0f;
         } catch (Exception e) {
             return 0;
@@ -416,6 +418,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     private void updateSingleChart(LineChart chart, float val, int color) {
+        if (chart == null) return;
         if (chart.getData() == null) chart.setData(new LineData());
         LineData data = chart.getData();
         LineDataSet set = (LineDataSet) data.getDataSetByIndex(0);
@@ -452,7 +455,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         public double ram_wolne;
         public int bateria_poziom;
         public double bateria_temp;
-        public double cpu_freq; // Nowe pole
+        public double cpu_freq;
 
         public RamSample() {}
 
@@ -513,7 +516,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     /* ==== WYŚWIETLANIE EKRANÓW ==== */
     private String daneAplikacjiTekst() {
         return "DANE APLIKACJI\n-----------------------------------\n\n" +
-                "• Wersja: 1.9 (CPU + MB)\n" +
+                "• Wersja: 2.0 (Kompletna)\n" +
                 "• Status: Aktywna\n" +
                 "• Ostatnia aktualizacja: Teraz\n\n" +
                 "UPRAWNIENIA\n-----------------------------------\n" +
@@ -560,6 +563,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         opisParametrow.setText(txt);
     }
 
+    @SuppressLint("MissingPermission") // NAPRAWA BŁĘDU ANDROID STUDIO
     private void wyswietlInformacjeGPS() {
         StringBuilder sb=new StringBuilder("PARAMETRY GPS\n-----------------------------------\n\n");
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED) {
@@ -583,10 +587,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         getWindowManager().getDefaultDisplay().getMetrics(m);
         int cores=Runtime.getRuntime().availableProcessors();
         String abi=(Build.SUPPORTED_ABIS!=null && Build.SUPPORTED_ABIS.length>0)? Build.SUPPORTED_ABIS[0]:"N/D";
-        String cpu=getCpuFreq(); // Wersja tekstowa do opisu
+        String cpu=getCpuFreq();
         String torch=isFlashlightOn? "Włączona 💡":"Wyłączona";
 
-        // Pobieramy float, żeby wyświetlić w opisie
         float cpuVal = getCpuFreqFloat();
 
         String s=String.format(Locale.US,
@@ -665,8 +668,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
+    @SuppressLint("MissingPermission") // NAPRAWA BŁĘDU ANDROID STUDIO - UCISZENIE LINTERA
     private void uruchomNasluchiwanieGPS() {
+        // Dodatkowy IF dla bezpieczeństwa
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED) return;
+
         try {
             if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER))
                 locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,2000,5,locationListener);
@@ -775,6 +781,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
+    @SuppressLint("MissingPermission")
     private void wibruj(int ms) {
         Vibrator v=(Vibrator)getSystemService(Context.VIBRATOR_SERVICE);
         if (v!=null && v.hasVibrator()) {
