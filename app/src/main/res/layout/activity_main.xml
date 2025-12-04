@@ -22,7 +22,11 @@
 
     <LinearLayout
         android:layout_width="match_parent"
+<<<<<<< HEAD
         android:layout_height="55dp"
+=======
+        android:layout_height="65dp"
+>>>>>>> feature/new-ui
         android:orientation="horizontal"
         android:weightSum="5"
         android:gravity="center"
@@ -30,7 +34,11 @@
         android:layout_marginBottom="0dp"
         android:padding="0dp">
 
+<<<<<<< HEAD
         <Button
+=======
+        <com.google.android.material.button.MaterialButton
+>>>>>>> feature/new-ui
             android:id="@+id/btn_ogolne"
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -38,6 +46,7 @@
             android:text="OGÓLNE"
             android:textAllCaps="true"
             android:textColor="#FFFFFF"
+<<<<<<< HEAD
             android:textSize="8sp"
             android:backgroundTint="#FF6666"
             android:insetTop="0dp"
@@ -47,6 +56,17 @@
             app:cornerRadius="0dp" />
 
         <Button
+=======
+            android:textSize="10sp"
+            app:backgroundTint="#FF6666"
+            app:cornerRadius="0dp"
+            app:strokeColor="#000000"
+            app:strokeWidth="1dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"/>
+
+        <com.google.android.material.button.MaterialButton
+>>>>>>> feature/new-ui
             android:id="@+id/btn_gps"
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -54,6 +74,7 @@
             android:text="GPS"
             android:textAllCaps="true"
             android:textColor="#000000"
+<<<<<<< HEAD
             android:textSize="8sp"
             android:backgroundTint="#33CCFF"
             android:insetTop="0dp"
@@ -63,6 +84,17 @@
             app:cornerRadius="0dp" />
 
         <Button
+=======
+            android:textSize="10sp"
+            app:backgroundTint="#33CCFF"
+            app:cornerRadius="0dp"
+            app:strokeColor="#000000"
+            app:strokeWidth="1dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"/>
+
+        <com.google.android.material.button.MaterialButton
+>>>>>>> feature/new-ui
             android:id="@+id/btn_zyroskop"
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -70,6 +102,7 @@
             android:text="ŻYROSKOP"
             android:textAllCaps="true"
             android:textColor="#FFFFFF"
+<<<<<<< HEAD
             android:textSize="8sp"
             android:backgroundTint="#CC66FF"
             android:insetTop="0dp"
@@ -79,6 +112,17 @@
             app:cornerRadius="0dp" />
 
         <Button
+=======
+            android:textSize="9sp"
+            app:backgroundTint="#CC66FF"
+            app:cornerRadius="0dp"
+            app:strokeColor="#000000"
+            app:strokeWidth="1dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"/>
+
+        <com.google.android.material.button.MaterialButton
+>>>>>>> feature/new-ui
             android:id="@+id/btn_system"
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -86,6 +130,7 @@
             android:text="SYSTEM"
             android:textAllCaps="true"
             android:textColor="#FFFFFF"
+<<<<<<< HEAD
             android:textSize="8sp"
             android:backgroundTint="#6666FF"
             android:insetTop="0dp"
@@ -95,6 +140,17 @@
             app:cornerRadius="0dp" />
 
         <Button
+=======
+            android:textSize="10sp"
+            app:backgroundTint="#6666FF"
+            app:cornerRadius="0dp"
+            app:strokeColor="#000000"
+            app:strokeWidth="1dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"/>
+
+        <com.google.android.material.button.MaterialButton
+>>>>>>> feature/new-ui
             android:id="@+id/btn_aplikacja"
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -102,6 +158,7 @@
             android:text="APLIKACJA"
             android:textAllCaps="true"
             android:textColor="#000000"
+<<<<<<< HEAD
             android:textSize="8sp"
             android:backgroundTint="#FF9933"
             android:insetTop="0dp"
@@ -109,6 +166,15 @@
             app:strokeColor="#000000"
             app:strokeWidth="2dp"
             app:cornerRadius="0dp" />
+=======
+            android:textSize="9sp"
+            app:backgroundTint="#FF9933"
+            app:cornerRadius="0dp"
+            app:strokeColor="#000000"
+            app:strokeWidth="1dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"/>
+>>>>>>> feature/new-ui
     </LinearLayout>
 
     <ScrollView
@@ -127,9 +193,15 @@
             android:gravity="center"
             android:text="OPIS PARAMETRÓW"
             android:textColor="#000000"
+<<<<<<< HEAD
             android:textSize="16sp"
             android:textStyle="bold"
             android:padding="8dp" />
+=======
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:padding="16dp" />
+>>>>>>> feature/new-ui
     </ScrollView>
 
 </LinearLayout>

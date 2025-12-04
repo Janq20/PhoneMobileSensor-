@@ -2,21 +2,31 @@
     <!-- Base application theme. -->
     <style name="Theme.MobileSensor" parent="Theme.MaterialComponents.DayNight.NoActionBar">
 
+<<<<<<< HEAD
         <!-- Primary brand color. -->
+=======
+    <!-- Primary brand color. -->
+>>>>>>> feature/new-ui
         <item name="colorPrimary">@color/purple_500</item>
         <item name="colorPrimaryVariant">@color/purple_700</item>
         <item name="colorOnPrimary">@color/white</item>
         <!-- Secondary brand color. -->
+<<<<<<< HEAD
 
+=======
+>>>>>>> feature/new-ui
         <item name="colorSecondary">@color/teal_200</item>
         <item name="colorSecondaryVariant">@color/teal_700</item>
         <item name="colorOnSecondary">@color/black</item>
         <!-- Status bar color. -->
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
         <!-- Customize your theme here. -->
+<<<<<<< HEAD
 
         <item name="android:statusBarColor">#FFFFFF</item>
         <item name="android:windowLightStatusBar">true</item>
 
+=======
+>>>>>>> feature/new-ui
     </style>
 </resources>
