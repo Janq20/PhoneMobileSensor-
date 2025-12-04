@@ -1,1 +1,1 @@
-# PhoneMobileSensor---Aplikacja
+# PhoneMobileSensor---Aplikacja\s

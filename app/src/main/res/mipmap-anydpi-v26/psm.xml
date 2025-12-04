@@ -1,10 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-<<<<<<< HEAD
     <background android:drawable="@drawable/psm_background"/>
     <foreground android:drawable="@drawable/psm_foreground"/>
-=======
-    <background android:drawable="@color/psm_background"/>
-    <foreground android:drawable="@mipmap/psm_foreground"/>
->>>>>>> feature/new-ui
 </adaptive-icon>
