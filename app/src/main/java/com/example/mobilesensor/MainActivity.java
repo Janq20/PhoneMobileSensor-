@@ -1,8 +1,41 @@
 package com.example.mobilesensor;
 
-/* ==== BIBLIOTEKI STANDARDOWE ANDROID ==== */
+/**
+ * @file MainActivity.java
+ * @brief Główna aktywność aplikacji MobileSensor.
+ *
+ * @details
+ * Aplikacja prezentuje informacje o urządzeniu (RAM, bateria, CPU, ekran),
+ * dane GPS (współrzędne, dokładność, geokodowanie, pogoda z OpenWeather),
+ * sensory (żyroskop, akcelerometr, czujnik światła), a także integruje wykresy
+ * w czasie rzeczywistym (MPAndroidChart) oraz persystuje uśrednione próbki
+ * do Firebase Realtime Database.
+ *
+ * Funkcje kluczowe:
+ * - Pomiary i odświeżanie danych systemowych (RAM, bateria, temperatura, CPU).
+ * - Nasłuchiwanie lokalizacji GPS/Network + geokodowanie adresu.
+ * - Pobieranie pogody (OpenWeather) dla bieżących współrzędnych.
+ * - Wyświetlanie wykresów (RAM, bateria, temp., światło, częstotliwość CPU).
+ * - Obsługa latarki (torch) przy użyciu Camera2 API.
+ * - Kopiowanie bieżącego opisu do schowka, wibracje dotykowe.
+ * - Zapisywanie uśrednionych próbek do Firebase.
+ *
+ * Wymagane uprawnienia:
+ * - ACCESS_FINE_LOCATION (GPS)
+ * - INTERNET (pogoda/mapy)
+ * - CAMERA (latarka)
+ *
+ * Zależności:
+ * - Firebase Realtime Database
+ * - MPAndroidChart
+ *
+ * @author
+ * Janq20
+ * @date 2025-12-05
+ */
+
 import android.Manifest;
-import android.annotation.SuppressLint; // WAŻNE!
+import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -74,78 +107,154 @@ import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
 
+/**
+ * @class MainActivity
+ * @brief Aktywność odpowiedzialna za prezentację i monitorowanie danych systemowych, GPS oraz sensorów.
+ *
+ * @implements SensorEventListener
+ *
+ * @section lifecycle Cykl życia
+ * - onCreate: Inicjalizacja Firebase, UI, sensorów, lokalizacji, latarki i pętli odświeżania.
+ * - onResume: Rejestracja nasłuchów sensorów i (warunkowo) GPS.
+ * - onPause: Wyrejestrowanie sensorów, zatrzymanie GPS oraz odświeżania RAM, wyłączenie latarki.
+ * - onDestroy: Zwolnienie zasobów (Firebase listener, ExecutorService).
+ *
+ * @section charts Wykresy
+ * Wykorzystuje pięć wykresów liniowych:
+ * - RAM (MB zużyte)
+ * - Bateria (%)
+ * - Temperatura baterii (°C)
+ * - Światło (lx)
+ * - Częstotliwość CPU (GHz)
+ *
+ * @section firebase Firebase
+ * Zapisuje uśrednione próbki co RAM_PUBLISH_INTERVAL_MS do gałęzi "statystyki_urzadzen/{deviceId}".
+ */
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
 
     /* ==== KONFIGURACJA STAŁYCH ==== */
+    /** Klucz API OpenWeather. */
     private static final String API_KEY = "73388daab4f30826e3f8cca01c2ddb04";
+    /** Szablon URL do pobierania pogody (metric, lang=pl). */
     private static final String WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather?lat=%f&lon=%f&appid=%s&units=metric&lang=pl";
+    /** URL bazy Firebase. */
     private static final String FIREBASE_URL = "https://mobilesensormonitor-default-rtdb.europe-west1.firebasedatabase.app";
 
+    /** Kod żądania uprawnień GPS. */
     private static final int REQUEST_CODE_GPS_PERMISSION = 100;
+    /** Kod żądania uprawnień kamery (latarka). */
     private static final int REQUEST_CODE_CAMERA_PERMISSION = 101;
 
     // Ekrany
+    /** Id ekranu ogólnego. */
     private static final int EKRAN_OGOLNE = 1;
+    /** Id ekranu GPS. */
     private static final int EKRAN_GPS = 2;
+    /** Id ekranu żyroskopu/akcelerometru. */
     private static final int EKRAN_ZYROSKOP = 3;
+    /** Id ekranu systemowego. */
     private static final int EKRAN_SYSTEM = 4;
+    /** Id ekranu informacji o aplikacji. */
     private static final int EKRAN_APLIKACJA = 5;
 
     /* ==== ELEMENTY UI ==== */
+    /** Główny TextView z opisem aktualnych parametrów. */
     private TextView opisParametrow;
+    /** Kontener na wykresy. */
     private LinearLayout layoutWykresy;
 
     // Wykresy
+    /** Wykres użycia RAM. */
     private LineChart chartRam;
+    /** Wykres poziomu baterii. */
     private LineChart chartBattery;
+    /** Wykres temperatury baterii. */
     private LineChart chartTemp;
+    /** Wykres natężenia światła (lx). */
     private LineChart chartLight;
+    /** Wykres częstotliwości CPU (GHz). */
     private LineChart chartCpu;
 
+    /** Aktualnie wybrany ekran. */
     private int aktualnieWybranyEkran = EKRAN_OGOLNE;
 
     /* ==== SENSORY I SPRZĘT ==== */
+    /** Manager sensorów. */
     private SensorManager sensorManager;
+    /** Czujnik światła. */
     private Sensor lightSensor;
+    /** Czujnik żyroskopu. */
     private Sensor gyroscopeSensor;
+    /** Czujnik akcelerometru. */
     private Sensor accelerometerSensor;
+    /** Bieżąca wartość natężenia światła [lx]. */
     private float aktualneSwiatloLx = 0.0f;
+    /** Ostatnie odczyty żyroskopu (X/Y/Z). */
     private final float[] aktualnyZyroskop = {0,0,0};
+    /** Ostatnie odczyty akcelerometru (X/Y/Z). */
     private final float[] aktualnyAkcelerometr = {0,0,0};
 
+    /** Manager lokalizacji. */
     private LocationManager locationManager;
+    /** Nasłuch lokalizacji. */
     private LocationListener locationListener;
+    /** Geocoder dla tłumaczenia współrzędnych na adres. */
     private Geocoder geocoder;
+    /** Szerokość geograficzna. */
     private double aktualnaSzerokosc = 0.0;
+    /** Długość geograficzna. */
     private double aktualnaDlugosc = 0.0;
+    /** Dokładność lokalizacji [m]. */
     private float aktualnaDokladnosc = 0.0f;
 
+    /** Manager kamery dla latarki. */
     private CameraManager cameraManager;
+    /** Identyfikator kamery z lampą błyskową. */
     private String cameraId;
+    /** Flaga informująca, czy latarka jest włączona. */
     private boolean isFlashlightOn = false;
 
     /* ==== WĄTKI I ODŚWIEŻANIE ==== */
+    /** Jednowątkowy executor dla operacji sieciowych (np. pogoda). */
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+    /** Handler UI (główny wątek). */
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    /** Handler pętli odświeżania RAM/system. */
     private final Handler ramHandler = new Handler(Looper.getMainLooper());
+    /** Runnable pętli odświeżania. */
     private Runnable ramRunnable;
 
+    /** Maksymalna liczba punktów na wykresie lokalnym (rolling). */
     private static final int MAX_LOCAL_POINTS = 60;
+    /** Interwał wysyłania uśrednionych danych do Firebase [ms]. */
     private static final long RAM_PUBLISH_INTERVAL_MS = 60_000;
+    /** Znacznik czasu ostatniej publikacji. */
     private long lastPublishTs = 0;
 
     // Zmienne do uśredniania (Firebase)
+    /** Suma wolnej pamięci RAM (MB) dla uśredniania. */
     private double sumRam = 0;
+    /** Suma temperatury baterii (°C) dla uśredniania. */
     private double sumTemp = 0;
+    /** Suma częstotliwości CPU (GHz) dla uśredniania. */
     private double sumCpu = 0;
+    /** Liczba próbek zebranych od ostatniej publikacji. */
     private int countSamples = 0;
 
     /* ==== FIREBASE ==== */
+    /** Czy połączenie z Firebase zostało zainicjalizowane. */
     private boolean firebasePolaczony = false;
+    /** Referencja do gałęzi urządzenia w Firebase. */
     private DatabaseReference firebaseDeviceRef;
+    /** Listener (opcjonalny) Firebase dla RAM. */
     private ValueEventListener ramFirebaseListener;
+    /** Identyfikator urządzenia używany w Firebase. */
     private String deviceId;
 
+    /**
+     * @brief Metoda cyklu życia: inicjalizacja modułów i UI.
+     * @param savedInstanceState stan zapisany (jeśli dostępny).
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -163,6 +272,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     /* ==== INICJALIZACJA FIREBASE ==== */
+
+    /**
+     * @brief Inicjalizuje Firebase i przygotowuje referencję do gałęzi urządzenia.
+     * @details Tworzy deviceId na podstawie modelu i fragmentu czasu, ustawia flagę połączenia.
+     */
     private void initFirebase() {
         try {
             FirebaseApp.initializeApp(this);
@@ -177,6 +291,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     /* ==== CYKL ŻYCIA APLIKACJI ==== */
+
+    /**
+     * @brief Rejestruje nasłuchy sensorów oraz (warunkowo) GPS po wznowieniu aktywności.
+     */
     @Override protected void onResume() {
         super.onResume();
         if (sensorManager != null) {
@@ -187,6 +305,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if (aktualnieWybranyEkran == EKRAN_GPS) uruchomNasluchiwanieGPS();
     }
 
+    /**
+     * @brief Wyrejestrowuje nasłuchy sensorów, zatrzymuje GPS i pętlę odświeżania oraz latarkę przy pauzie.
+     */
     @Override protected void onPause() {
         super.onPause();
         if (sensorManager != null) sensorManager.unregisterListener(this);
@@ -197,6 +318,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
+    /**
+     * @brief Zwalnia zasoby przy niszczeniu aktywności (handler, Firebase listener, executor).
+     */
     @Override protected void onDestroy() {
         stopRamRefresher();
         stopFirebaseRamListener();
@@ -205,6 +329,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     /* ==== KONFIGURACJA INTERFEJSU (UI) ==== */
+
+    /**
+     * @brief Przygotowuje UI: ukrywa pasek akcji, konfiguruje status bar, binduje widoki i wykresy.
+     * @details Ustawia style wykresów, obsługę kliknięć i długich kliknięć na polu opisu.
+     */
     private void setupUI() {
         if (getSupportActionBar()!=null) getSupportActionBar().hide();
         getWindow().setStatusBarColor(Color.WHITE);
@@ -251,6 +380,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         });
     }
 
+    /**
+     * @brief Konfiguruje pojedynczy wykres liniowy (styl, osie, dane).
+     * @param chart referencja wykresu.
+     * @param color kolor serii i etykiet.
+     * @param min minimalna wartość osi Y (0, gdy auto-scale).
+     * @param max maksymalna wartość osi Y (0, gdy auto-scale).
+     */
     private void setupSingleChart(LineChart chart, int color, float min, float max) {
         if (chart == null) return;
         chart.getDescription().setEnabled(false);
@@ -281,6 +417,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         chart.getLegend().setEnabled(false);
     }
 
+    /**
+     * @brief Konfiguruje przyciski nawigacyjne i ich zachowania.
+     * @details Przełącza ekrany, start/stop odświeżania i GPS, aktualizuje UI.
+     */
     private void setupButtons() {
         View.OnClickListener listener = v -> {
             wibruj(30);
@@ -321,6 +461,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     /* ==== LOGIKA PĘTLI POMIAROWEJ (MONITORING) ==== */
+
+    /**
+     * @brief Przygotowuje Runnable odświeżający dane systemowe i wykresy co 1s.
+     * @details
+     * - Zbiera RAM (MB), baterię (%), temperaturę (°C), częstotliwość CPU (GHz).
+     * - Aktualizuje wykresy na ekranie systemowym.
+     * - Uśrednia wartości i publikuje do Firebase co RAM_PUBLISH_INTERVAL_MS.
+     * - Aktualizuje tekstowe ekrany ogólne/systemowe.
+     */
     private void setupRamRefresher() {
         ramRunnable = new Runnable() {
             @Override public void run() {
@@ -357,7 +506,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     updateSingleChart(chartCpu, cpuFreq, Color.MAGENTA);
                 }
 
-                // Zbieranie próbek do średniej
                 sumRam += freeRamMB;
                 sumTemp += batteryTemp;
                 sumCpu += cpuFreq;
@@ -397,6 +545,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         };
     }
 
+    /**
+     * @brief Odczytuje bieżącą częstotliwość CPU (cpu0) w GHz.
+     * @return Częstotliwość CPU w GHz lub 0, gdy odczyt się nie powiódł.
+     */
     private float getCpuFreqFloat() {
         try {
             RandomAccessFile reader = new RandomAccessFile("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq", "r");
@@ -409,6 +561,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     /* ==== METODY POMOCNICZE ==== */
+
+    /**
+     * @brief Zaokrągla wartość do podanej liczby miejsc po przecinku.
+     * @param value wartość wejściowa.
+     * @param places liczba miejsc po przecinku (>=0).
+     * @return Wartość po zaokrągleniu.
+     * @throws IllegalArgumentException gdy places < 0.
+     */
     private double zaokraglij(double value, int places) {
         if (places < 0) throw new IllegalArgumentException();
         long factor = (long) Math.pow(10, places);
@@ -417,6 +577,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         return (double) tmp / factor;
     }
 
+    /**
+     * @brief Dodaje nowy punkt do wykresu i utrzymuje maks. liczbę punktów (rolling).
+     * @param chart wykres, który ma zostać zaktualizowany.
+     * @param val wartość Y.
+     * @param color kolor serii (używany przy inicjalizacji).
+     */
     private void updateSingleChart(LineChart chart, float val, int color) {
         if (chart == null) return;
         if (chart.getData() == null) chart.setData(new LineData());
@@ -450,15 +616,37 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     /* ==== MODEL DANYCH FIREBASE ==== */
+
+    /**
+     * @class RamSample
+     * @brief Model próbki danych zapisywanych do Firebase.
+     *
+     * @details
+     * Pola są publiczne, aby Firebase mógł je serializować/deserializować.
+     */
     public static class RamSample {
+        /** Znacznik czasu (ms since epoch). */
         public long czas;
+        /** Wolna pamięć RAM [MB] (uśredniona). */
         public double ram_wolne;
+        /** Poziom baterii [%]. */
         public int bateria_poziom;
+        /** Temperatura baterii [°C] (uśredniona). */
         public double bateria_temp;
+        /** Częstotliwość CPU [GHz] (uśredniona). */
         public double cpu_freq;
 
+        /** Konstruktor bezargumentowy wymagany przez Firebase. */
         public RamSample() {}
 
+        /**
+         * @brief Tworzy próbkę RAM/CPU/Battery.
+         * @param czas znacznik czasu (ms).
+         * @param ram_wolne wolna RAM [MB].
+         * @param bateria_poziom poziom baterii [%].
+         * @param bateria_temp temperatura baterii [°C].
+         * @param cpu_freq częstotliwość CPU [GHz].
+         */
         public RamSample(long czas, double ram_wolne, int bateria_poziom, double bateria_temp, double cpu_freq){
             this.czas = czas;
             this.ram_wolne = ram_wolne;
@@ -469,6 +657,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     /* ==== OBSŁUGA SENSORÓW I SPRZĘTU ==== */
+
+    /**
+     * @brief Inicjalizuje dostępne sensory: światło, żyroskop, akcelerometr.
+     */
     private void setupSensors() {
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         if (sensorManager != null) {
@@ -478,6 +670,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
+    /**
+     * @brief Wyszukuje kamerę z lampą błyskową i zapisuje jej ID do użycia jako latarka.
+     */
     private void setupFlashlight() {
         cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
         try {
@@ -491,6 +686,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         } catch (CameraAccessException ignored) {}
     }
 
+    /**
+     * @brief Konfiguruje manager lokalizacji, geocoder i listener lokalizacji.
+     * @details Listener aktualizuje współrzędne, dokładność, UI oraz pobiera pogodę.
+     */
     private void setupLocation() {
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         geocoder = new Geocoder(this, Locale.getDefault());
@@ -514,22 +713,30 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     /* ==== WYŚWIETLANIE EKRANÓW ==== */
+
+    /**
+     * @brief Zwraca opis danych aplikacji (wersja, status, uprawnienia, sensory).
+     * @return Tekst do wyświetlenia.
+     */
     private String daneAplikacjiTekst() {
         return "DANE APLIKACJI\n-----------------------------------\n\n" +
                 "• Wersja: 2.0 (Kompletna)\n" +
                 "• Status: Aktywna\n" +
                 "• Ostatnia aktualizacja: Teraz\n\n" +
                 "UPRAWNIENIA\n-----------------------------------\n" +
-                "✅ Lokalizacja (GPS/Sieć)\n" +
-                "✅ Internet (Pogoda/Mapy)\n" +
-                "✅ Stan telefonu (Bateria)\n" +
-                "✅ Aparat (Latarka)\n\n" +
+                " Lokalizacja (GPS/Sieć)\n" +
+                " Internet (Pogoda/Mapy)\n" +
+                " Stan telefonu (Bateria)\n" +
+                " Aparat (Latarka)\n\n" +
                 "WYKORZYSTYWANE SENSORY\n-----------------------------------\n" +
-                "📡 Żyroskop\n" +
-                "📡 Akcelerometr\n" +
-                "📡 Czujnik światła";
+                " Żyroskop\n" +
+                " Akcelerometr\n" +
+                " Czujnik światła";
     }
 
+    /**
+     * @brief Buduje i wyświetla informacje ogólne o urządzeniu (RAM, dysk, bateria).
+     */
     private void wyswietlInformacjeOgolne() {
         ActivityManager.MemoryInfo mi=new ActivityManager.MemoryInfo();
         ((ActivityManager)getSystemService(Context.ACTIVITY_SERVICE)).getMemoryInfo(mi);
@@ -563,7 +770,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         opisParametrow.setText(txt);
     }
 
-    @SuppressLint("MissingPermission") // NAPRAWA BŁĘDU ANDROID STUDIO
+    /**
+     * @brief Buduje i wyświetla informacje GPS: adres, współrzędne, dokładność.
+     * @note Oznaczona @SuppressLint dla lintera — rzeczywiste sprawdzenie uprawnień jest wykonywane.
+     */
+    @SuppressLint("MissingPermission")
     private void wyswietlInformacjeGPS() {
         StringBuilder sb=new StringBuilder("PARAMETRY GPS\n-----------------------------------\n\n");
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED) {
@@ -582,6 +793,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         opisParametrow.setText(sb.toString());
     }
 
+    /**
+     * @brief Buduje i wyświetla informacje systemowe: CPU, światło, Android, latarka, ekran.
+     */
     private void wyswietlInformacjeSystemowe() {
         DisplayMetrics m=new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(m);
@@ -598,6 +812,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         opisParametrow.setText(s);
     }
 
+    /**
+     * @brief Wyświetla bieżące odczyty żyroskopu (rad/s) i akcelerometru (m/s²).
+     */
     private void wyswietlZyroskop() {
         String s=String.format(Locale.US,
                 "ŻYROSKOP (rad/s)\n-----------------------------------\nX: %.2f\nY: %.2f\nZ: %.2f\n\nAKCELEROMETR (m/s²)\n-----------------------------------\nX: %.2f\nY: %.2f\nZ: %.2f\n\n(Przytrzymaj tekst, aby skopiować)",
@@ -607,6 +824,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     /* ==== POZOSTAŁE METODY POMOCNICZE (SYSTEMOWE) ==== */
+
+    /**
+     * @brief Odczytuje uśrednioną pojemność baterii z PowerProfile (mAh).
+     * @param context kontekst aplikacji.
+     * @return Pojemność baterii w mAh lub 0 przy błędzie.
+     */
     private double getBatteryCapacity(Context context) {
         Object mPowerProfile;
         double batteryCapacity = 0;
@@ -622,6 +845,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         return batteryCapacity;
     }
 
+    /**
+     * @brief Zwraca opis pojemności i wolnego miejsca na dysku danych aplikacji.
+     * @return Tekst z wolnym i całkowitym miejscem [GB].
+     */
     private String getPojemnoscDysku() {
         try {
             File path= Environment.getDataDirectory();
@@ -635,6 +862,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         } catch (Exception e){ return "Błąd odczytu"; }
     }
 
+    /**
+     * @brief Próbuje zgeokodować współrzędne na zwięzły adres (miejscowość + ulica).
+     * @param lat szerokość geograficzna.
+     * @param lon długość geograficzna.
+     * @return Sformatowany adres lub komunikat o niedostępności.
+     */
     private String pobierzAdres(double lat,double lon) {
         if(!Geocoder.isPresent()) return "Geokodowanie niedostępne";
         try {
@@ -649,6 +882,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         return "Adres nieznany";
     }
 
+    /**
+     * @brief Odczytuje częstotliwość CPU (cpu0) i zwraca jako tekst "x.xx GHz".
+     * @return Tekstowa reprezentacja częstotliwości CPU lub "Nieznane".
+     */
     private String getCpuFreq() {
         try (RandomAccessFile r=new RandomAccessFile("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq","r")) {
             String line=r.readLine();
@@ -660,6 +897,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         return "Nieznane";
     }
 
+    /**
+     * @brief Sprawdza i (jeśli potrzeba) prosi o uprawnienia GPS, a następnie uruchamia nasłuchiwanie.
+     */
     private void sprawdzIpoprosOPermISjeGPS() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED) {
             uruchomNasluchiwanieGPS();
@@ -668,9 +908,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
-    @SuppressLint("MissingPermission") // NAPRAWA BŁĘDU ANDROID STUDIO - UCISZENIE LINTERA
+    /**
+     * @brief Rejestruje nasłuchiwanie lokalizacji z providerów GPS/NETWORK (jeśli dostępni).
+     * @note Oznaczone @SuppressLint — rzeczywiste sprawdzenie uprawnień wykonywane przed wywołaniem.
+     */
+    @SuppressLint("MissingPermission")
     private void uruchomNasluchiwanieGPS() {
-        // Dodatkowy IF dla bezpieczeństwa
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED) return;
 
         try {
@@ -681,12 +924,21 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         } catch (Exception ignored){}
     }
 
+    /**
+     * @brief Zatrzymuje nasłuchiwanie lokalizacji.
+     */
     private void zatrzymajNasluchiwanieGPS() {
         if(locationManager!=null && locationListener!=null) {
             try { locationManager.removeUpdates(locationListener); } catch (SecurityException ignored){}
         }
     }
 
+    /**
+     * @brief Pobiera dane pogodowe z OpenWeather dla podanych współrzędnych.
+     * @param lat szerokość geograficzna.
+     * @param lon długość geograficzna.
+     * @details Wykonuje zapytanie w ExecutorService i aktualizuje UI na głównym wątku.
+     */
     private void pobierzDanePogodowe(double lat,double lon) {
         executorService.execute(() -> {
             String resp="";
@@ -706,6 +958,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         });
     }
 
+    /**
+     * @brief Formatuje JSON odpowiedzi pogodowej i dokleja blok do aktualnego opisu.
+     * @param json surowy JSON z OpenWeather.
+     */
     private void sformatujIWyswietlPogode(String json) {
         try {
             JSONObject j=new JSONObject(json);
@@ -729,15 +985,24 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         } catch (Exception ignored){}
     }
 
+    /**
+     * @brief Uruchamia pętlę odświeżania danych systemowych (co 1s).
+     */
     private void startRamRefresher() {
         ramHandler.removeCallbacks(ramRunnable);
         ramHandler.post(ramRunnable);
     }
 
+    /**
+     * @brief Zatrzymuje pętlę odświeżania danych systemowych.
+     */
     private void stopRamRefresher() {
         ramHandler.removeCallbacks(ramRunnable);
     }
 
+    /**
+     * @brief Przykładowe przygotowanie listenera Firebase (nieużywany).
+     */
     private void startFirebaseRamListener() {
         if (!firebasePolaczony || firebaseDeviceRef==null || ramFirebaseListener!=null) return;
         ramFirebaseListener = new ValueEventListener() {
@@ -746,6 +1011,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         };
     }
 
+    /**
+     * @brief Usuwa listener RAM z Firebase, jeśli był dodany.
+     */
     private void stopFirebaseRamListener() {
         if (firebaseDeviceRef!=null && ramFirebaseListener!=null) {
             firebaseDeviceRef.removeEventListener(ramFirebaseListener);
@@ -753,6 +1021,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
+    /**
+     * @brief Otwiera aplikację map z pinezką w bieżącej lokalizacji.
+     */
     private void otworzMapyGoogle() {
         try {
             String uri = String.format(Locale.US,"geo:%f,%f?q=%f,%f(Tu jesteś)",aktualnaSzerokosc,aktualnaDlugosc,aktualnaSzerokosc,aktualnaDlugosc);
@@ -762,6 +1033,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
+    /**
+     * @brief Przełącza latarkę (torch) jeśli dostępna i posiada uprawnienia.
+     * @details Aktualizuje opis ekranu systemowego po przełączeniu.
+     */
     private void przelaczLatarke() {
         if (cameraManager==null || cameraId==null) {
             Toast.makeText(this,"Brak lampy błyskowej",Toast.LENGTH_SHORT).show();
@@ -781,6 +1056,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
+    /**
+     * @brief Wibruje urządzeniem przez podany czas.
+     * @param ms czas wibracji w milisekundach.
+     */
     @SuppressLint("MissingPermission")
     private void wibruj(int ms) {
         Vibrator v=(Vibrator)getSystemService(Context.VIBRATOR_SERVICE);
@@ -791,12 +1070,22 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
+    /**
+     * @brief Kopiuje tekst do schowka i pokazuje komunikat.
+     * @param txt tekst do skopiowania.
+     */
     private void kopiujDoSchowka(String txt) {
         ClipboardManager cb=(ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE);
         cb.setPrimaryClip(ClipData.newPlainText("Dane",txt));
         Toast.makeText(this,"Skopiowano",Toast.LENGTH_SHORT).show();
     }
 
+    /**
+     * @brief Callback dla wyników żądań uprawnień (GPS/Kamera).
+     * @param requestCode kod żądania.
+     * @param permissions tablica żądanych uprawnień.
+     * @param grantResults wyniki przyznania.
+     */
     @Override public void onRequestPermissionsResult(int requestCode,@NonNull String[] permissions,@NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode,permissions,grantResults);
         if(requestCode==REQUEST_CODE_GPS_PERMISSION) {
@@ -811,6 +1100,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
+    /**
+     * @brief Obsługa zdarzeń sensorów: światło, żyroskop, akcelerometr.
+     * @param e zdarzenie sensora.
+     */
     @Override public void onSensorChanged(SensorEvent e) {
         int t=e.sensor.getType();
         if (t==Sensor.TYPE_LIGHT) {
@@ -824,5 +1117,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             if(aktualnieWybranyEkran==EKRAN_ZYROSKOP) wyswietlZyroskop();
         }
     }
+
+    /**
+     * @brief Nieużywane: zmiana dokładności sensora.
+     * @param sensor sensor.
+     * @param acc nowa dokładność.
+     */
     @Override public void onAccuracyChanged(Sensor sensor,int acc){}
 }
