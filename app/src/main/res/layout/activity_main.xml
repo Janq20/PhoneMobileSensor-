@@ -20,7 +20,7 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="65dp"
+        android:layout_height="58dp"
         android:orientation="horizontal"
         android:weightSum="5"
         android:gravity="center"
@@ -32,7 +32,8 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:text="OGÓLNE"
-            android:textSize="10sp"
+            android:textSize="7sp"
+            android:maxLines="1"
             app:backgroundTint="#FF6666"
             app:cornerRadius="0dp"
             app:strokeColor="#000000"
@@ -46,7 +47,8 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:text="GPS"
-            android:textSize="10sp"
+            android:textSize="7sp"
+            android:maxLines="1"
             app:backgroundTint="#33CCFF"
             app:cornerRadius="0dp"
             app:strokeColor="#000000"
@@ -60,7 +62,8 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:text="ŻYROSKOP"
-            android:textSize="9sp"
+            android:textSize="6sp"
+            android:maxLines="1"
             app:backgroundTint="#CC66FF"
             app:cornerRadius="0dp"
             app:strokeColor="#000000"
@@ -74,7 +77,8 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:text="SYSTEM"
-            android:textSize="10sp"
+            android:textSize="7sp"
+            android:maxLines="1"
             app:backgroundTint="#6666FF"
             app:cornerRadius="0dp"
             app:strokeColor="#000000"
@@ -88,7 +92,8 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:text="APLIKACJA"
-            android:textSize="9sp"
+            android:textSize="6sp"
+            android:maxLines="1"
             app:backgroundTint="#FF9933"
             app:cornerRadius="0dp"
             app:strokeColor="#000000"
@@ -109,7 +114,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:gravity="center"
-            android:paddingVertical="20dp">
+            android:paddingVertical="16dp">
 
             <TextView
                 android:id="@+id/opis_parametrow"
@@ -121,7 +126,7 @@
                 android:textSize="18sp"
                 android:textStyle="bold"
                 android:lineSpacingExtra="6dp"
-                android:padding="20dp" />
+                android:padding="16dp" />
 
             <LinearLayout
                 android:id="@+id/layout_wykresy"
@@ -129,7 +134,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:visibility="gone"
-                android:paddingBottom="20dp">
+                android:paddingBottom="12dp">
 
                 <TextView
                     android:layout_width="match_parent"
@@ -138,14 +143,15 @@
                     android:textColor="#FFFFFF"
                     android:gravity="center"
                     android:textStyle="bold"
-                    android:layout_marginTop="10dp"/>
+                    android:textSize="13sp"
+                    android:layout_marginTop="6dp"/>
                 <com.github.mikephil.charting.charts.LineChart
                     android:id="@+id/chart_ram"
                     android:layout_width="match_parent"
-                    android:layout_height="200dp"
+                    android:layout_height="180dp"
                     android:background="#222222"
                     android:layout_marginHorizontal="10dp"
-                    android:layout_marginBottom="10dp"/>
+                    android:layout_marginBottom="8dp"/>
 
                 <TextView
                     android:layout_width="match_parent"
@@ -153,14 +159,15 @@
                     android:text="POZIOM BATERII (%)"
                     android:textColor="#FFFFFF"
                     android:gravity="center"
-                    android:textStyle="bold"/>
+                    android:textStyle="bold"
+                    android:textSize="13sp"/>
                 <com.github.mikephil.charting.charts.LineChart
                     android:id="@+id/chart_battery"
                     android:layout_width="match_parent"
-                    android:layout_height="200dp"
+                    android:layout_height="180dp"
                     android:background="#222222"
                     android:layout_marginHorizontal="10dp"
-                    android:layout_marginBottom="10dp"/>
+                    android:layout_marginBottom="8dp"/>
 
                 <TextView
                     android:layout_width="match_parent"
@@ -168,14 +175,15 @@
                     android:text="TEMPERATURA BATERII (°C)"
                     android:textColor="#FFFFFF"
                     android:gravity="center"
-                    android:textStyle="bold"/>
+                    android:textStyle="bold"
+                    android:textSize="13sp"/>
                 <com.github.mikephil.charting.charts.LineChart
                     android:id="@+id/chart_temp"
                     android:layout_width="match_parent"
-                    android:layout_height="200dp"
+                    android:layout_height="180dp"
                     android:background="#222222"
                     android:layout_marginHorizontal="10dp"
-                    android:layout_marginBottom="10dp"/>
+                    android:layout_marginBottom="8dp"/>
 
                 <TextView
                     android:layout_width="match_parent"
@@ -183,14 +191,15 @@
                     android:text="NATĘŻENIE ŚWIATŁA (lx)"
                     android:textColor="#FFFFFF"
                     android:gravity="center"
-                    android:textStyle="bold"/>
+                    android:textStyle="bold"
+                    android:textSize="13sp"/>
                 <com.github.mikephil.charting.charts.LineChart
                     android:id="@+id/chart_light"
                     android:layout_width="match_parent"
-                    android:layout_height="200dp"
+                    android:layout_height="180dp"
                     android:background="#222222"
                     android:layout_marginHorizontal="10dp"
-                    android:layout_marginBottom="20dp"/>
+                    android:layout_marginBottom="12dp"/>
 
                 <TextView
                     android:layout_width="match_parent"
@@ -198,14 +207,137 @@
                     android:text="TAKTOWANIE CPU (GHz)"
                     android:textColor="#FFFFFF"
                     android:gravity="center"
-                    android:textStyle="bold"/>
+                    android:textStyle="bold"
+                    android:textSize="13sp"/>
                 <com.github.mikephil.charting.charts.LineChart
                     android:id="@+id/chart_cpu"
                     android:layout_width="match_parent"
-                    android:layout_height="200dp"
+                    android:layout_height="180dp"
                     android:background="#222222"
                     android:layout_marginHorizontal="10dp"
-                    android:layout_marginBottom="20dp"/>
+                    android:layout_marginBottom="12dp"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/layout_aplikacja_wykres"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                android:paddingBottom="12dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Wybierz urządzenie (gałąź pod statystyki_urzadzen)"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:gravity="center"
+                    android:textStyle="bold"
+                    android:layout_marginTop="6dp"/>
+
+                <Spinner
+                    android:id="@+id/spinner_devices"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="12dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="#FFFFFF" />
+
+                <EditText
+                    android:id="@+id/et_limit"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Ile ostatnich próbek (np. 20)"
+                    android:inputType="number"
+                    android:layout_marginHorizontal="12dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="#FFFFFF"
+                    android:padding="8dp" />
+
+                <Button
+                    android:id="@+id/btn_load"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Wczytaj i pokaż wykresy"
+                    android:layout_marginHorizontal="12dp"
+                    android:layout_marginBottom="12dp"
+                    android:background="#444444"
+                    android:textColor="#FFFFFF" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="RAM (MB) / Bateria (%) / Temp (°C) / CPU (GHz)"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:gravity="center"
+                    android:textStyle="bold"
+                    android:layout_marginTop="6dp"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="RAM wolne (MB)"
+                    android:textColor="#FFFFFF"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:layout_marginTop="6dp"/>
+                <com.github.mikephil.charting.charts.LineChart
+                    android:id="@+id/chart_app_ram"
+                    android:layout_width="match_parent"
+                    android:layout_height="160dp"
+                    android:background="#222222"
+                    android:layout_marginHorizontal="10dp"
+                    android:layout_marginBottom="8dp"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Bateria (%)"
+                    android:textColor="#FFFFFF"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:layout_marginTop="6dp"/>
+                <com.github.mikephil.charting.charts.LineChart
+                    android:id="@+id/chart_app_battery"
+                    android:layout_width="match_parent"
+                    android:layout_height="160dp"
+                    android:background="#222222"
+                    android:layout_marginHorizontal="10dp"
+                    android:layout_marginBottom="8dp"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Temperatura (°C)"
+                    android:textColor="#FFFFFF"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:layout_marginTop="6dp"/>
+                <com.github.mikephil.charting.charts.LineChart
+                    android:id="@+id/chart_app_temp"
+                    android:layout_width="match_parent"
+                    android:layout_height="160dp"
+                    android:background="#222222"
+                    android:layout_marginHorizontal="10dp"
+                    android:layout_marginBottom="8dp"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="CPU (GHz)"
+                    android:textColor="#FFFFFF"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:layout_marginTop="6dp"/>
+                <com.github.mikephil.charting.charts.LineChart
+                    android:id="@+id/chart_app_cpu"
+                    android:layout_width="match_parent"
+                    android:layout_height="160dp"
+                    android:background="#222222"
+                    android:layout_marginHorizontal="10dp"
+                    android:layout_marginBottom="12dp"/>
 
             </LinearLayout>
 
