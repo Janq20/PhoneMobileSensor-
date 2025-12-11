@@ -1,3 +1,7 @@
+// ==========================================
+// IMPORTY I DEKLARACJE
+// ==========================================
+
 package com.example.mobilesensor;
 
 import android.Manifest;
@@ -55,7 +59,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
-import androidx.core.content.ContextCompat;
+import androidx.core.content.ContextCompat;  // Poprawiony import
 
 import org.json.JSONObject;
 
@@ -85,6 +89,10 @@ import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.formatter.ValueFormatter;
+
+// ==========================================
+// STAŁE I ZMIENNE GLOBALNE
+// ==========================================
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
 
@@ -151,17 +159,25 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private ValueEventListener ramFirebaseListener;
     private String deviceId;
 
+// ==========================================
+// KLASA WEWNĘTRZNA RAMSAMPLE
+// ==========================================
+
     public static class RamSample {
         public long czas;
-        public double ram_wolne;
+        public double ram_uzycie;  // Zmienione z ram_wolne na ram_uzycie
         public int bateria_poziom;
         public double bateria_temp;
         public double cpu_freq;
         public RamSample() {}
-        public RamSample(long czas, double ram_wolne, int bateria_poziom, double bateria_temp, double cpu_freq){
-            this.czas=czas; this.ram_wolne=ram_wolne; this.bateria_poziom=bateria_poziom; this.bateria_temp=bateria_temp; this.cpu_freq=cpu_freq;
+        public RamSample(long czas, double ram_uzycie, int bateria_poziom, double bateria_temp, double cpu_freq){
+            this.czas=czas; this.ram_uzycie=ram_uzycie; this.bateria_poziom=bateria_poziom; this.bateria_temp=bateria_temp; this.cpu_freq=cpu_freq;
         }
     }
+
+// ==========================================
+// METODY ŻYCIA AKTYWNOŚCI
+// ==========================================
 
     @Override protected void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
@@ -210,6 +226,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onDestroy();
     }
 
+// ==========================================
+// INICJALIZACJA I USŁUGI
+// ==========================================
+
     private void ensureNotificationPermissionAndStartService(){
         if (Build.VERSION.SDK_INT >= 33 &&
                 ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
@@ -243,7 +263,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if (!firebasePolaczony || firebaseDeviceRef==null) return;
         ActivityManager.MemoryInfo memInfo = new ActivityManager.MemoryInfo();
         ((ActivityManager)getSystemService(Context.ACTIVITY_SERVICE)).getMemoryInfo(memInfo);
+        double totalRamMB = memInfo.totalMem / (1024.0 * 1024.0);
         double freeRamMB = memInfo.availMem / (1024.0 * 1024.0);
+        double usedRamMB = totalRamMB - freeRamMB;  // Użycie RAM
         float batteryPct = 0;
         float batteryTemp = 0;
         Intent bat = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
@@ -255,9 +277,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             batteryTemp = tempInt / 10.0f;
         }
         float cpuFreq = getCpuFreqFloat();
-        RamSample sample = new RamSample(System.currentTimeMillis(), zaokraglij(freeRamMB, 0), (int)batteryPct, zaokraglij(batteryTemp, 1), zaokraglij(cpuFreq, 2));
+        RamSample sample = new RamSample(System.currentTimeMillis(), zaokraglij(usedRamMB, 0), (int)batteryPct, zaokraglij(batteryTemp, 1), zaokraglij(cpuFreq, 2));
         firebaseDeviceRef.push().setValue(sample);
     }
+
+// ==========================================
+// SETUP UI I WYKRESÓW
+// ==========================================
 
     private void setupUI(){
         if (getSupportActionBar()!=null) getSupportActionBar().hide();
@@ -316,6 +342,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         opisParametrow.setOnLongClickListener(v -> { wibruj(100); kopiujDoSchowka(opisParametrow.getText().toString()); return true; });
     }
 
+// ==========================================
+// KONFIGURACJA WYKRESÓW
+// ==========================================
+
     private void setupSingleChart(LineChart chart, int color, float min, float max, String unit){
         if (chart == null) return;
         chart.getDescription().setEnabled(false);
@@ -359,6 +389,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         chart.getLegend().setEnabled(false);
     }
 
+// ==========================================
+// OBSŁUGA PRZYCISKÓW
+// ==========================================
+
     private void setupButtons(){
         View.OnClickListener listener = v -> {
             wibruj(15);
@@ -396,6 +430,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         for (int id : buttons) { View btn = findViewById(id); if (btn != null) btn.setOnClickListener(listener); }
     }
 
+// ==========================================
+// MONITORING RAM I DANYCH
+// ==========================================
+
     private void setupRamRefresher(){
         ramRunnable = new Runnable() {
             @Override public void run() {
@@ -403,7 +441,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 ((ActivityManager)getSystemService(Context.ACTIVITY_SERVICE)).getMemoryInfo(memInfo);
                 double freeRamMB = memInfo.availMem / (1024.0 * 1024.0);
                 double totalRamMB = memInfo.totalMem / (1024.0 * 1024.0);
-                double usedRamMB = totalRamMB - freeRamMB;
+                double usedRamMB = totalRamMB - freeRamMB;  // Użycie RAM
 
                 float batteryPct = 0;
                 float batteryTemp = 0;
@@ -433,16 +471,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     updateSingleChart(chartCpu, clamp(cpuFreq, 0f, 3.5f), Color.MAGENTA);
                 }
 
-                sumRam += freeRamMB; sumTemp += batteryTemp; sumCpu += cpuFreq; countSamples++;
+                sumRam += usedRamMB; sumTemp += batteryTemp; sumCpu += cpuFreq; countSamples++;  // Zmienione na usedRamMB
 
                 long now = System.currentTimeMillis();
                 if (firebasePolaczony && firebaseDeviceRef!=null && (now - lastPublishTs) >= RAM_PUBLISH_INTERVAL_MS) {
                     lastPublishTs = now;
-                    double avgFreeRam = countSamples>0 ? sumRam/countSamples : freeRamMB;
+                    double avgUsedRam = countSamples>0 ? sumRam/countSamples : usedRamMB;  // Średnie użycie
                     double avgTemp = countSamples>0 ? sumTemp/countSamples : batteryTemp;
                     double avgCpu  = countSamples>0 ? sumCpu/countSamples  : cpuFreq;
                     sumRam = sumTemp = sumCpu = 0; countSamples = 0;
-                    RamSample sample = new RamSample(now, zaokraglij(avgFreeRam, 0), (int)batteryPct, zaokraglij(avgTemp, 1), zaokraglij(avgCpu, 2));
+                    RamSample sample = new RamSample(now, zaokraglij(avgUsedRam, 0), (int)batteryPct, zaokraglij(avgTemp, 1), zaokraglij(avgCpu, 2));
                     firebaseDeviceRef.push().setValue(sample)
                             .addOnFailureListener(e -> Toast.makeText(MainActivity.this, "Błąd zapisu: "+e.getMessage(), Toast.LENGTH_SHORT).show());
                 }
@@ -454,6 +492,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         };
     }
+
+// ==========================================
+// POMOCNICZE FUNKCJE
+// ==========================================
 
     private float clamp(float v, float min, float max){ return Math.max(min, Math.min(max, v)); }
 
@@ -502,6 +544,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         chart.moveViewToX(data.getEntryCount());
     }
 
+// ==========================================
+// ŁADOWANIE DANYCH Z FIREBASE
+// ==========================================
+
     private void loadDeviceListIntoSpinner() {
         if (firebaseRootRef == null) return;
         firebaseRootRef.addListenerForSingleValueEvent(new ValueEventListener() {
@@ -542,12 +588,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                             LineData dataTemp= chartAppTemp.getData(); if (dataTemp==null){ dataTemp=new LineData(); chartAppTemp.setData(dataTemp); }
                             LineData dataCpu = chartAppCpu.getData(); if (dataCpu==null) { dataCpu=new LineData(); chartAppCpu.setData(dataCpu); }
 
-                            LineDataSet ramSet = (LineDataSet) dataRam.getDataSetByLabel("RAM wolne (MB)", true);
+                            LineDataSet ramSet = (LineDataSet) dataRam.getDataSetByLabel("RAM użycie (MB)", true);
                             LineDataSet batSet = (LineDataSet) dataBat.getDataSetByLabel("Bateria (%)", true);
                             LineDataSet tempSet= (LineDataSet) dataTemp.getDataSetByLabel("Temperatura (°C)", true);
                             LineDataSet cpuSet = (LineDataSet) dataCpu.getDataSetByLabel("CPU (GHz)", true);
 
-                            if (ramSet==null) { ramSet = baseSet(Color.GREEN, "RAM wolne (MB)"); dataRam.addDataSet(ramSet); }
+                            if (ramSet==null) { ramSet = baseSet(Color.GREEN, "RAM użycie (MB)"); dataRam.addDataSet(ramSet); }
                             if (batSet==null) { batSet = baseSet(Color.YELLOW, "Bateria (%)"); dataBat.addDataSet(batSet); }
                             if (tempSet==null){ tempSet= baseSet(Color.RED, "Temperatura (°C)"); dataTemp.addDataSet(tempSet); }
                             if (cpuSet==null) { cpuSet = baseSet(Color.MAGENTA, "CPU (GHz)"); dataCpu.addDataSet(cpuSet); }
@@ -556,7 +602,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                             for (DataSnapshot child : snapshot.getChildren()) {
                                 RamSample s = child.getValue(RamSample.class);
                                 if (s == null) continue;
-                                dataRam.addEntry(new Entry(idx, clamp((float) s.ram_wolne, 0f, 65536f)), dataRam.getIndexOfDataSet(ramSet));
+                                dataRam.addEntry(new Entry(idx, clamp((float) s.ram_uzycie, 0f, 65536f)), dataRam.getIndexOfDataSet(ramSet));  // Użycie RAM
                                 dataBat.addEntry(new Entry(idx, clamp((float) s.bateria_poziom, 0f, 100f)), dataBat.getIndexOfDataSet(batSet));
                                 dataTemp.addEntry(new Entry(idx, clamp((float) s.bateria_temp, -10f, 80f)), dataTemp.getIndexOfDataSet(tempSet));
                                 dataCpu.addEntry(new Entry(idx, clamp((float) s.cpu_freq, 0f, 3.5f)), dataCpu.getIndexOfDataSet(cpuSet));
@@ -600,6 +646,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         d.clearValues();
         chart.invalidate();
     }
+
+// ==========================================
+// SETUP SENSORS I LOKALIZACJI
+// ==========================================
 
     private void setupSensors(){
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -645,21 +695,25 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         };
     }
 
+// ==========================================
+// TEKSTOWE FUNKCJE WYŚWIETLANIA
+// ==========================================
+
     private String daneAplikacjiTekst(){
-        return "DANE APLIKACJI\n-----------------------------------\n\n" +
+        return "DANE APLIKACJI\n=====================================\n\n" +
                 "• Wersja: 2.0 (Kompletna)\n" +
                 "• Status: Aktywna\n" +
-                "• Ostatnia aktualizacja: 11.12.2025 19:05\n\n" +
-                "UPRAWNIENIA\n-----------------------------------\n" +
+                "• Ostatnia aktualizacja: 11.12.2025\n\n" +
+                "UPRAWNIENIA\n=====================================\n" +
                 " • Lokalizacja (GPS/Sieć)\n" +
                 " • Internet (Pogoda/Mapy)\n" +
                 " • Stan telefonu (Bateria)\n" +
                 " • Aparat (Latarka)\n\n" +
-                "WYKORZYSTYWANE SENSORY\n-----------------------------------\n" +
+                "WYKORZYSTYWANE SENSORY\n=====================================\n" +
                 " • Żyroskop\n" +
                 " • Akcelerometr\n" +
                 " • Czujnik światła\n\n" +
-                "WCZYTYWANIE BAZY FIREBASE\n-----------------------------------\n";
+                "WCZYTYWANIE BAZY FIREBASE\n=====================================\n";
     }
 
     private void wyswietlInformacjeOgolne(){
@@ -734,6 +788,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 aktualnyAkcelerometr[0],aktualnyAkcelerometr[1],aktualnyAkcelerometr[2]);
         opisParametrow.setText(s);
     }
+
+// ==========================================
+// POMOCNICZE FUNKCJE SYSTEMOWE
+// ==========================================
 
     private String getPojemnoscDysku(){
         try {
@@ -848,6 +906,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if (cb!=null) { cb.setPrimaryClip(ClipData.newPlainText("Dane",txt)); Toast.makeText(this,"Skopiowano",Toast.LENGTH_SHORT).show(); }
     }
 
+// ==========================================
+// OBSŁUGA SENSORÓW
+// ==========================================
+
     @Override public void onSensorChanged(SensorEvent event){
         int type = event.sensor.getType();
         if (type==Sensor.TYPE_LIGHT) {
@@ -862,6 +924,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
     @Override public void onAccuracyChanged(Sensor sensor, int accuracy){}
+
+// ==========================================
+// LISTENERY FIREBASE
+// ==========================================
 
     private void startFirebaseRamListener() {
         if (!firebasePolaczony || firebaseDeviceRef == null || ramFirebaseListener != null) return;
@@ -878,8 +944,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
+// ==========================================
+// KLASA USŁUGI MONITORINGU
+// ==========================================
+
     public static class SensorMonitorService extends Service {
-        public static final String CHANNEL_ID = "mobile_sensor_monitor_channel";
+        private static final String CHANNEL_ID = "mobile_sensor_monitor_channel";
         private static final int NOTIFICATION_ID = 1001;
 
         private final Handler handler = new Handler(Looper.getMainLooper());
@@ -922,7 +992,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         ((ActivityManager)getSystemService(Context.ACTIVITY_SERVICE)).getMemoryInfo(memInfo);
                         double freeRamMB  = memInfo.availMem / (1024.0 * 1024.0);
                         double totalRamMB = memInfo.totalMem / (1024.0 * 1024.0);
-                        double usedRamMB  = totalRamMB - freeRamMB;
+                        double usedRamMB  = totalRamMB - freeRamMB;  // Użycie RAM
 
                         float batteryPct = 0;
                         float batteryTemp = 0;
@@ -936,22 +1006,22 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         }
                         float cpuFreq = getCpuFreqFloat();
 
-                        sumRam += freeRamMB; sumTemp += batteryTemp; sumCpu += cpuFreq; countSamples++;
+                        sumRam += usedRamMB; sumTemp += batteryTemp; sumCpu += cpuFreq; countSamples++;  // Użycie RAM
 
                         long now = System.currentTimeMillis();
                         if (firebaseReady && firebaseDeviceRef!=null && (now - lastPublishTs) >= PUBLISH_INTERVAL_MS) {
                             lastPublishTs = now;
-                            double avgFreeRam = countSamples>0? sumRam/countSamples : freeRamMB;
+                            double avgUsedRam = countSamples>0? sumRam/countSamples : usedRamMB;  // Średnie użycie
                             double avgTemp    = countSamples>0? sumTemp/countSamples : batteryTemp;
                             double avgCpu     = countSamples>0? sumCpu/countSamples  : cpuFreq;
                             sumRam=sumTemp=sumCpu=0; countSamples=0;
 
-                            RamSample sample = new RamSample(now, round(avgFreeRam,0), (int)batteryPct, round(avgTemp,1), round(avgCpu,2));
+                            RamSample sample = new RamSample(now, round(avgUsedRam,0), (int)batteryPct, round(avgTemp,1), round(avgCpu,2));
                             firebaseDeviceRef.push().setValue(sample);
                         }
 
                         updateNotification(String.format(Locale.US,"RAM: %.0fMB • CPU: %.2fGHz • Bat: %.0f%% • Temp: %.1f°C",
-                                usedRamMB, cpuFreq, batteryPct, batteryTemp));
+                                usedRamMB, cpuFreq, batteryPct, batteryTemp));  // Użycie RAM w notyfikacji
                     } catch (Exception ignored) {
                     } finally {
                         handler.postDelayed(this, 1000);
@@ -965,8 +1035,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             try {
                 ActivityManager.MemoryInfo memInfo = new ActivityManager.MemoryInfo();
                 ((ActivityManager)getSystemService(Context.ACTIVITY_SERVICE)).getMemoryInfo(memInfo);
+                double totalRamMB = memInfo.totalMem / (1024.0 * 1024.0);
                 double freeRamMB = memInfo.availMem / (1024.0 * 1024.0);
-
+                double usedRamMB = totalRamMB - freeRamMB;  // Użycie RAM
                 float batteryPct = 0;
                 float batteryTemp = 0;
                 Intent bat = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
@@ -978,7 +1049,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     batteryTemp = tempInt / 10.0f;
                 }
                 float cpuFreq = getCpuFreqFloat();
-                RamSample sample = new RamSample(System.currentTimeMillis(), round(freeRamMB,0), (int)batteryPct, round(batteryTemp,1), round(cpuFreq,2));
+                RamSample sample = new RamSample(System.currentTimeMillis(), round(usedRamMB,0), (int)batteryPct, round(batteryTemp,1), round(cpuFreq,2));
                 firebaseDeviceRef.push().setValue(sample);
             } catch (Exception ignored){}
         }
