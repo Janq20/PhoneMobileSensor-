@@ -32,7 +32,7 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:text="OGÓLNE"
-            android:textSize="7sp"
+            android:textSize="6sp"
             android:maxLines="1"
             app:backgroundTint="#FF6666"
             app:cornerRadius="0dp"
@@ -77,7 +77,7 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:text="SYSTEM"
-            android:textSize="7sp"
+            android:textSize="6sp"
             android:maxLines="1"
             app:backgroundTint="#6666FF"
             app:cornerRadius="0dp"
@@ -139,7 +139,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="UŻYCIE RAM (MB)"
+                    android:text="UŻYCIE RAM"
                     android:textColor="#FFFFFF"
                     android:gravity="center"
                     android:textStyle="bold"
@@ -156,7 +156,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="POZIOM BATERII (%)"
+                    android:text="POZIOM BATERII"
                     android:textColor="#FFFFFF"
                     android:gravity="center"
                     android:textStyle="bold"
@@ -172,7 +172,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="TEMPERATURA BATERII (°C)"
+                    android:text="TEMPERATURA BATERII"
                     android:textColor="#FFFFFF"
                     android:gravity="center"
                     android:textStyle="bold"
@@ -188,7 +188,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="NATĘŻENIE ŚWIATŁA (lx)"
+                    android:text="NATĘŻENIE ŚWIATŁA"
                     android:textColor="#FFFFFF"
                     android:gravity="center"
                     android:textStyle="bold"
@@ -204,7 +204,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="TAKTOWANIE CPU (GHz)"
+                    android:text="TAKTOWANIE CPU"
                     android:textColor="#FFFFFF"
                     android:gravity="center"
                     android:textStyle="bold"
@@ -229,7 +229,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Wybierz urządzenie (gałąź pod statystyki_urzadzen)"
+                    android:text="Wybierz urządzenie:"
                     android:textColor="#FFFFFF"
                     android:textSize="13sp"
                     android:gravity="center"
@@ -248,7 +248,7 @@
                     android:id="@+id/et_limit"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Ile ostatnich próbek (np. 20)"
+                    android:hint="Wybierz ilość pobranych próbek z Firebase"
                     android:inputType="number"
                     android:layout_marginHorizontal="12dp"
                     android:layout_marginBottom="8dp"
@@ -278,7 +278,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="RAM wolne (MB)"
+                    android:text="Pamięć RAM)"
                     android:textColor="#FFFFFF"
                     android:textStyle="bold"
                     android:gravity="center"
@@ -310,7 +310,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Temperatura (°C)"
+                    android:text="Temperatura Baterii"
                     android:textColor="#FFFFFF"
                     android:textStyle="bold"
                     android:gravity="center"
@@ -326,7 +326,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="CPU (GHz)"
+                    android:text="Wykorzystanie CPU"
                     android:textColor="#FFFFFF"
                     android:textStyle="bold"
                     android:gravity="center"
