@@ -278,7 +278,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Pamięć RAM)"
+                    android:text="UŻYCIE RAM"
                     android:textColor="#FFFFFF"
                     android:textStyle="bold"
                     android:gravity="center"
@@ -294,7 +294,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Bateria (%)"
+                    android:text="POZIOM BATERII"
                     android:textColor="#FFFFFF"
                     android:textStyle="bold"
                     android:gravity="center"
@@ -310,7 +310,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Temperatura Baterii"
+                    android:text="TEMPERATURA BATERII"
                     android:textColor="#FFFFFF"
                     android:textStyle="bold"
                     android:gravity="center"
@@ -326,7 +326,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Wykorzystanie CPU"
+                    android:text="TAKTOWANIE CPU"
                     android:textColor="#FFFFFF"
                     android:textStyle="bold"
                     android:gravity="center"
