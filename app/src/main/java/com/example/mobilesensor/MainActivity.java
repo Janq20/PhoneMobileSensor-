@@ -1,42 +1,16 @@
-package com.example.mobilesensor;
+// ==========================================
+// IMPORTY I DEKLARACJE
+// ==========================================
 
-/**
- * @file MainActivity.java
- * @brief Główna aktywność aplikacji MobileSensor.
- *
- * @details
- * Aplikacja prezentuje informacje o urządzeniu (RAM, bateria, CPU, ekran),
- * dane GPS (współrzędne, dokładność, geokodowanie, pogoda z OpenWeather),
- * sensory (żyroskop, akcelerometr, czujnik światła), a także integruje wykresy
- * w czasie rzeczywistym (MPAndroidChart) oraz persystuje uśrednione próbki
- * do Firebase Realtime Database.
- *
- * Funkcje kluczowe:
- * - Pomiary i odświeżanie danych systemowych (RAM, bateria, temperatura, CPU).
- * - Nasłuchiwanie lokalizacji GPS/Network + geokodowanie adresu.
- * - Pobieranie pogody (OpenWeather) dla bieżących współrzędnych.
- * - Wyświetlanie wykresów (RAM, bateria, temp., światło, częstotliwość CPU).
- * - Obsługa latarki (torch) przy użyciu Camera2 API.
- * - Kopiowanie bieżącego opisu do schowka, wibracje dotykowe.
- * - Zapisywanie uśrednionych próbek do Firebase.
- *
- * Wymagane uprawnienia:
- * - ACCESS_FINE_LOCATION (GPS)
- * - INTERNET (pogoda/mapy)
- * - CAMERA (latarka)
- *
- * Zależności:
- * - Firebase Realtime Database
- * - MPAndroidChart
- *
- * @author
- * Janq20
- * @date 2025-12-05
- */
+package com.example.mobilesensor;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.ActivityManager;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.Service;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -44,13 +18,14 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
-import android.hardware.camera2.CameraAccessException;
-import android.hardware.camera2.CameraCharacteristics;
-import android.hardware.camera2.CameraManager;
+import android.graphics.Rect;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CameraManager;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
@@ -62,20 +37,29 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Looper;
 import android.os.StatFs;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.util.DisplayMetrics;
 import android.view.View;
+import android.view.WindowManager;
+import android.view.WindowMetrics;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
+import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;  // Poprawiony import
 
 import org.json.JSONObject;
 
@@ -85,12 +69,12 @@ import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/* ==== BIBLIOTEKI FIREBASE ==== */
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -98,165 +82,181 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
-/* ==== BIBLIOTEKI WYKRESÓW (MPAndroidChart) ==== */
 import com.github.mikephil.charting.charts.LineChart;
-import com.github.mikephil.charting.components.Legend;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
+import com.github.mikephil.charting.formatter.ValueFormatter;
+
+/**
+ * @file MainActivity.java
+ * @brief Główna aktywność aplikacji MobileSensorMonitor, odpowiedzialna za monitorowanie systemu, sensorów i wyświetlanie danych.
+ * @author Janq20
+ * @date 2025-12-11
+ * @version 2.0
+ */
+
+// ==========================================
+// STAŁE I ZMIENNE GLOBALNE
+// ==========================================
 
 /**
  * @class MainActivity
- * @brief Aktywność odpowiedzialna za prezentację i monitorowanie danych systemowych, GPS oraz sensorów.
- *
- * @implements SensorEventListener
- *
- * @section lifecycle Cykl życia
- * - onCreate: Inicjalizacja Firebase, UI, sensorów, lokalizacji, latarki i pętli odświeżania.
- * - onResume: Rejestracja nasłuchów sensorów i (warunkowo) GPS.
- * - onPause: Wyrejestrowanie sensorów, zatrzymanie GPS oraz odświeżania RAM, wyłączenie latarki.
- * - onDestroy: Zwolnienie zasobów (Firebase listener, ExecutorService).
- *
- * @section charts Wykresy
- * Wykorzystuje pięć wykresów liniowych:
- * - RAM (MB zużyte)
- * - Bateria (%)
- * - Temperatura baterii (°C)
- * - Światło (lx)
- * - Częstotliwość CPU (GHz)
- *
- * @section firebase Firebase
- * Zapisuje uśrednione próbki co RAM_PUBLISH_INTERVAL_MS do gałęzi "statystyki_urzadzen/{deviceId}".
+ * @brief Główna klasa aktywności aplikacji, zarządzająca UI, sensorami, lokalizacją i Firebase.
+ * @details Klasa dziedziczy po AppCompatActivity i implementuje SensorEventListener dla obsługi sensorów.
  */
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
 
-    /* ==== KONFIGURACJA STAŁYCH ==== */
-    /** Klucz API OpenWeather. */
+    /** @brief Klucz API dla OpenWeatherMap */
     private static final String API_KEY = "73388daab4f30826e3f8cca01c2ddb04";
-    /** Szablon URL do pobierania pogody (metric, lang=pl). */
+    /** @brief URL dla żądania pogody */
     private static final String WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather?lat=%f&lon=%f&appid=%s&units=metric&lang=pl";
-    /** URL bazy Firebase. */
-    private static final String FIREBASE_URL = "https://mobilesensormonitor-default-rtdb.europe-west1.firebasedatabase.app";
+    /** @brief URL bazy danych Firebase */
+    public static final String FIREBASE_URL = "https://mobilesensormonitor-default-rtdb.europe-west1.firebasedatabase.app";
 
-    /** Kod żądania uprawnień GPS. */
+    /** @brief Kod żądania uprawnień GPS */
     private static final int REQUEST_CODE_GPS_PERMISSION = 100;
-    /** Kod żądania uprawnień kamery (latarka). */
+    /** @brief Kod żądania uprawnień kamery */
     private static final int REQUEST_CODE_CAMERA_PERMISSION = 101;
+    /** @brief Kod żądania uprawnień notyfikacji */
+    private static final int REQUEST_CODE_POST_NOTIFICATIONS = 102;
 
-    // Ekrany
-    /** Id ekranu ogólnego. */
+    /** @brief Stała dla ekranu ogólnego */
     private static final int EKRAN_OGOLNE = 1;
-    /** Id ekranu GPS. */
+    /** @brief Stała dla ekranu GPS */
     private static final int EKRAN_GPS = 2;
-    /** Id ekranu żyroskopu/akcelerometru. */
+    /** @brief Stała dla ekranu żyroskopu */
     private static final int EKRAN_ZYROSKOP = 3;
-    /** Id ekranu systemowego. */
+    /** @brief Stała dla ekranu systemu */
     private static final int EKRAN_SYSTEM = 4;
-    /** Id ekranu informacji o aplikacji. */
+    /** @brief Stała dla ekranu aplikacji */
     private static final int EKRAN_APLIKACJA = 5;
 
-    /* ==== ELEMENTY UI ==== */
-    /** Główny TextView z opisem aktualnych parametrów. */
+    /** @brief Maksymalna liczba punktów lokalnych na wykresie */
+    private static final int MAX_LOCAL_POINTS = 240;
+    /** @brief Interwał publikacji RAM w ms */
+    private static final long RAM_PUBLISH_INTERVAL_MS = 60_000;
+
+    /** @brief TextView dla opisu parametrów */
     private TextView opisParametrow;
-    /** Kontener na wykresy. */
+    /** @brief Layout dla wykresów */
     private LinearLayout layoutWykresy;
+    /** @brief Layout dla wykresów aplikacji */
+    private LinearLayout layoutAplikacjaWykres;
+    /** @brief Wykres RAM */
+    private LineChart chartRam, chartBattery, chartTemp, chartLight, chartCpu;
+    /** @brief Wykresy aplikacji */
+    private LineChart chartAppRam, chartAppBattery, chartAppTemp, chartAppCpu;
+    /** @brief Spinner urządzeń */
+    private Spinner spinnerDevices;
+    /** @brief EditText dla limitu */
+    private EditText etLimit;
+    /** @brief Button ładowania */
+    private Button btnLoad;
 
-    // Wykresy
-    /** Wykres użycia RAM. */
-    private LineChart chartRam;
-    /** Wykres poziomu baterii. */
-    private LineChart chartBattery;
-    /** Wykres temperatury baterii. */
-    private LineChart chartTemp;
-    /** Wykres natężenia światła (lx). */
-    private LineChart chartLight;
-    /** Wykres częstotliwości CPU (GHz). */
-    private LineChart chartCpu;
-
-    /** Aktualnie wybrany ekran. */
+    /** @brief Obecnie wybrany ekran */
     private int aktualnieWybranyEkran = EKRAN_OGOLNE;
 
-    /* ==== SENSORY I SPRZĘT ==== */
-    /** Manager sensorów. */
+    /** @brief Manager sensorów */
     private SensorManager sensorManager;
-    /** Czujnik światła. */
-    private Sensor lightSensor;
-    /** Czujnik żyroskopu. */
-    private Sensor gyroscopeSensor;
-    /** Czujnik akcelerometru. */
-    private Sensor accelerometerSensor;
-    /** Bieżąca wartość natężenia światła [lx]. */
+    /** @brief Sensory */
+    private Sensor lightSensor, gyroscopeSensor, accelerometerSensor;
+    /** @brief Aktualne wartości sensorów */
     private float aktualneSwiatloLx = 0.0f;
-    /** Ostatnie odczyty żyroskopu (X/Y/Z). */
     private final float[] aktualnyZyroskop = {0,0,0};
-    /** Ostatnie odczyty akcelerometru (X/Y/Z). */
     private final float[] aktualnyAkcelerometr = {0,0,0};
 
-    /** Manager lokalizacji. */
+    /** @brief Manager lokalizacji */
     private LocationManager locationManager;
-    /** Nasłuch lokalizacji. */
+    /** @brief Listener lokalizacji */
     private LocationListener locationListener;
-    /** Geocoder dla tłumaczenia współrzędnych na adres. */
+    /** @brief Geocoder */
     private Geocoder geocoder;
-    /** Szerokość geograficzna. */
+    /** @brief Aktualne współrzędne i dokładność */
     private double aktualnaSzerokosc = 0.0;
-    /** Długość geograficzna. */
     private double aktualnaDlugosc = 0.0;
-    /** Dokładność lokalizacji [m]. */
     private float aktualnaDokladnosc = 0.0f;
 
-    /** Manager kamery dla latarki. */
+    /** @brief Manager kamery */
     private CameraManager cameraManager;
-    /** Identyfikator kamery z lampą błyskową. */
+    /** @brief ID kamery */
     private String cameraId;
-    /** Flaga informująca, czy latarka jest włączona. */
+    /** @brief Czy latarka włączona */
     private boolean isFlashlightOn = false;
 
-    /* ==== WĄTKI I ODŚWIEŻANIE ==== */
-    /** Jednowątkowy executor dla operacji sieciowych (np. pogoda). */
+    /** @brief ExecutorService dla zadań asynchronicznych */
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
-    /** Handler UI (główny wątek). */
+    /** @brief Handler główny */
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
-    /** Handler pętli odświeżania RAM/system. */
+    /** @brief Handler RAM */
     private final Handler ramHandler = new Handler(Looper.getMainLooper());
-    /** Runnable pętli odświeżania. */
+    /** @brief Runnable dla odświeżania RAM */
     private Runnable ramRunnable;
 
-    /** Maksymalna liczba punktów na wykresie lokalnym (rolling). */
-    private static final int MAX_LOCAL_POINTS = 60;
-    /** Interwał wysyłania uśrednionych danych do Firebase [ms]. */
-    private static final long RAM_PUBLISH_INTERVAL_MS = 60_000;
-    /** Znacznik czasu ostatniej publikacji. */
+    /** @brief Ostatni timestamp publikacji */
     private long lastPublishTs = 0;
-
-    // Zmienne do uśredniania (Firebase)
-    /** Suma wolnej pamięci RAM (MB) dla uśredniania. */
+    /** @brief Sumy próbek dla uśredniania */
     private double sumRam = 0;
-    /** Suma temperatury baterii (°C) dla uśredniania. */
     private double sumTemp = 0;
-    /** Suma częstotliwości CPU (GHz) dla uśredniania. */
     private double sumCpu = 0;
-    /** Liczba próbek zebranych od ostatniej publikacji. */
+    /** @brief Liczba próbek */
     private int countSamples = 0;
 
-    /* ==== FIREBASE ==== */
-    /** Czy połączenie z Firebase zostało zainicjalizowane. */
+    /** @brief Czy Firebase połączone */
     private boolean firebasePolaczony = false;
-    /** Referencja do gałęzi urządzenia w Firebase. */
+    /** @brief Referencje Firebase */
+    private FirebaseDatabase firebaseDatabase;
+    private DatabaseReference firebaseRootRef;
     private DatabaseReference firebaseDeviceRef;
-    /** Listener (opcjonalny) Firebase dla RAM. */
     private ValueEventListener ramFirebaseListener;
-    /** Identyfikator urządzenia używany w Firebase. */
+    /** @brief ID urządzenia */
     private String deviceId;
 
+// ==========================================
+// KLASA WEWNĘTRZNA RAMSAMPLE
+// ==========================================
+
     /**
-     * @brief Metoda cyklu życia: inicjalizacja modułów i UI.
-     * @param savedInstanceState stan zapisany (jeśli dostępny).
+     * @class RamSample
+     * @brief Klasa reprezentująca próbkę danych RAM, baterii i CPU.
      */
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public static class RamSample {
+        /** @brief Timestamp próby */
+        public long czas;
+        /** @brief Użycie RAM w MB */
+        public double ram_uzycie;
+        /** @brief Poziom baterii w % */
+        public int bateria_poziom;
+        /** @brief Temperatura baterii w °C */
+        public double bateria_temp;
+        /** @brief Częstotliwość CPU w GHz */
+        public double cpu_freq;
+        /** @brief Konstruktor domyślny */
+        public RamSample() {}
+        /**
+         * @brief Konstruktor parametryczny
+         * @param czas Timestamp
+         * @param ram_uzycie Użycie RAM
+         * @param bateria_poziom Poziom baterii
+         * @param bateria_temp Temperatura baterii
+         * @param cpu_freq Częstotliwość CPU
+         */
+        public RamSample(long czas, double ram_uzycie, int bateria_poziom, double bateria_temp, double cpu_freq){
+            this.czas=czas; this.ram_uzycie=ram_uzycie; this.bateria_poziom=bateria_poziom; this.bateria_temp=bateria_temp; this.cpu_freq=cpu_freq;
+        }
+    }
+
+// ==========================================
+// METODY ŻYCIA AKTYWNOŚCI
+// ==========================================
+
+    /**
+     * @brief Metoda wywoływana przy tworzeniu aktywności.
+     * @param savedInstanceState Stan instancji
+     */
+    @Override protected void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -267,127 +267,195 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         setupFlashlight();
         setupButtons();
         setupRamRefresher();
+
+        ensureNotificationPermissionAndStartService();
+
         startRamRefresher();
         sprawdzIpoprosOPermISjeGPS();
+        wyswietlInformacjeOgolne();
     }
 
-    /* ==== INICJALIZACJA FIREBASE ==== */
-
     /**
-     * @brief Inicjalizuje Firebase i przygotowuje referencję do gałęzi urządzenia.
-     * @details Tworzy deviceId na podstawie modelu i fragmentu czasu, ustawia flagę połączenia.
+     * @brief Metoda wywoływana przy wznowieniu aktywności.
      */
-    private void initFirebase() {
-        try {
-            FirebaseApp.initializeApp(this);
-            FirebaseDatabase db = FirebaseDatabase.getInstance(FIREBASE_URL);
-            deviceId = Build.MODEL.replace(" ", "_") + "_" + (System.currentTimeMillis() % 10000);
-            firebaseDeviceRef = db.getReference("statystyki_urzadzen").child(deviceId);
-            firebasePolaczony = true;
-        } catch (Exception e) {
-            firebasePolaczony = false;
-            Toast.makeText(this, "Błąd Firebase: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    /* ==== CYKL ŻYCIA APLIKACJI ==== */
-
-    /**
-     * @brief Rejestruje nasłuchy sensorów oraz (warunkowo) GPS po wznowieniu aktywności.
-     */
-    @Override protected void onResume() {
+    @Override protected void onResume(){
         super.onResume();
         if (sensorManager != null) {
-            if (lightSensor != null) sensorManager.registerListener(this, lightSensor, SensorManager.SENSOR_DELAY_NORMAL);
-            if (gyroscopeSensor != null) sensorManager.registerListener(this, gyroscopeSensor, SensorManager.SENSOR_DELAY_NORMAL);
-            if (accelerometerSensor != null) sensorManager.registerListener(this, accelerometerSensor, SensorManager.SENSOR_DELAY_NORMAL);
+            if (lightSensor != null) sensorManager.registerListener(this, lightSensor, SensorManager.SENSOR_DELAY_GAME);
+            if (gyroscopeSensor != null) sensorManager.registerListener(this, gyroscopeSensor, SensorManager.SENSOR_DELAY_GAME);
+            if (accelerometerSensor != null) sensorManager.registerListener(this, accelerometerSensor, SensorManager.SENSOR_DELAY_GAME);
         }
         if (aktualnieWybranyEkran == EKRAN_GPS) uruchomNasluchiwanieGPS();
+        if (aktualnieWybranyEkran == EKRAN_OGOLNE || aktualnieWybranyEkran == EKRAN_SYSTEM) startRamRefresher();
     }
 
     /**
-     * @brief Wyrejestrowuje nasłuchy sensorów, zatrzymuje GPS i pętlę odświeżania oraz latarkę przy pauzie.
+     * @brief Metoda wywoływana przy pauzie aktywności.
      */
-    @Override protected void onPause() {
+    @Override protected void onPause(){
         super.onPause();
         if (sensorManager != null) sensorManager.unregisterListener(this);
         zatrzymajNasluchiwanieGPS();
         stopRamRefresher();
         if (isFlashlightOn) {
-            try { cameraManager.setTorchMode(cameraId, false); isFlashlightOn = false; } catch (Exception ignored){}
+            try { cameraManager.setTorchMode(cameraId,false); isFlashlightOn=false; } catch (Exception ignored){}
         }
     }
 
     /**
-     * @brief Zwalnia zasoby przy niszczeniu aktywności (handler, Firebase listener, executor).
+     * @brief Metoda wywoływana przy zniszczeniu aktywności.
      */
-    @Override protected void onDestroy() {
+    @Override protected void onDestroy(){
         stopRamRefresher();
         stopFirebaseRamListener();
         executorService.shutdownNow();
         super.onDestroy();
     }
 
-    /* ==== KONFIGURACJA INTERFEJSU (UI) ==== */
+// ==========================================
+// INICJALIZACJA I USŁUGI
+// ==========================================
 
     /**
-     * @brief Przygotowuje UI: ukrywa pasek akcji, konfiguruje status bar, binduje widoki i wykresy.
-     * @details Ustawia style wykresów, obsługę kliknięć i długich kliknięć na polu opisu.
+     * @brief Zapewnia uprawnienia notyfikacji i uruchamia usługę.
      */
-    private void setupUI() {
-        if (getSupportActionBar()!=null) getSupportActionBar().hide();
-        getWindow().setStatusBarColor(Color.WHITE);
-        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+    private void ensureNotificationPermissionAndStartService(){
+        if (Build.VERSION.SDK_INT >= 33 &&
+                ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQUEST_CODE_POST_NOTIFICATIONS);
+            return;
+        }
+        startMonitoringService();
+    }
 
+    /**
+     * @brief Uruchamia usługę monitoringu.
+     */
+    private void startMonitoringService(){
+        Intent i = new Intent(this, SensorMonitorService.class);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(i);
+        else startService(i);
+    }
+
+    /**
+     * @brief Inicjalizuje Firebase.
+     */
+    private void initFirebase(){
+        try {
+            FirebaseApp.initializeApp(this);
+            firebaseDatabase = FirebaseDatabase.getInstance(FIREBASE_URL);
+            firebaseRootRef = firebaseDatabase.getReference("statystyki_urzadzen");
+            deviceId = Build.MODEL.replace(" ", "_") + "_" + (System.currentTimeMillis() % 10000);
+            firebaseDeviceRef = firebaseRootRef.child(deviceId);
+            firebasePolaczony = true;
+            pushCurrentSampleNow();
+        } catch (Exception e){
+            firebasePolaczony = false;
+            Toast.makeText(this, "Błąd Firebase: "+e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * @brief Wysyła bieżącą próbkę do Firebase.
+     */
+    private void pushCurrentSampleNow(){
+        if (!firebasePolaczony || firebaseDeviceRef==null) return;
+        ActivityManager.MemoryInfo memInfo = new ActivityManager.MemoryInfo();
+        ((ActivityManager)getSystemService(Context.ACTIVITY_SERVICE)).getMemoryInfo(memInfo);
+        double totalRamMB = memInfo.totalMem / (1024.0 * 1024.0);
+        double freeRamMB = memInfo.availMem / (1024.0 * 1024.0);
+        double usedRamMB = totalRamMB - freeRamMB;
+        float batteryPct = 0;
+        float batteryTemp = 0;
+        Intent bat = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        if (bat != null) {
+            int level = bat.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+            int scale = bat.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+            int tempInt = bat.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0);
+            if (level != -1 && scale != -1) batteryPct = (level / (float)scale) * 100;
+            batteryTemp = tempInt / 10.0f;
+        }
+        float cpuFreq = getCpuFreqFloat();
+        RamSample sample = new RamSample(System.currentTimeMillis(), zaokraglij(usedRamMB, 0), (int)batteryPct, zaokraglij(batteryTemp, 1), zaokraglij(cpuFreq, 2));
+        firebaseDeviceRef.push().setValue(sample);
+    }
+
+// ==========================================
+// SETUP UI I WYKRESÓW
+// ==========================================
+
+    /**
+     * @brief Konfiguruje interfejs użytkownika.
+     */
+    private void setupUI(){
+        if (getSupportActionBar()!=null) getSupportActionBar().hide();
         opisParametrow = findViewById(R.id.opis_parametrow);
         layoutWykresy = findViewById(R.id.layout_wykresy);
-
-        // Przypisanie wykresów
+        layoutAplikacjaWykres = findViewById(R.id.layout_aplikacja_wykres);
         chartRam = findViewById(R.id.chart_ram);
         chartBattery = findViewById(R.id.chart_battery);
         chartTemp = findViewById(R.id.chart_temp);
         chartLight = findViewById(R.id.chart_light);
         chartCpu = findViewById(R.id.chart_cpu);
 
-        // Konfiguracja stylów wykresów
-        setupSingleChart(chartRam, Color.GREEN, 0, 0); // Auto-scale
-        setupSingleChart(chartBattery, Color.YELLOW, 0, 100);
-        setupSingleChart(chartTemp, Color.RED, 15, 50);
-        setupSingleChart(chartLight, Color.CYAN, 0, 1000);
-        setupSingleChart(chartCpu, Color.MAGENTA, 0, 3.5f);
+        chartAppRam = findViewById(R.id.chart_app_ram);
+        chartAppBattery = findViewById(R.id.chart_app_battery);
+        chartAppTemp = findViewById(R.id.chart_app_temp);
+        chartAppCpu = findViewById(R.id.chart_app_cpu);
 
-        // Resetowanie autoscale
-        if(chartLight != null && chartLight.getAxisLeft() != null) {
-            chartLight.getAxisLeft().resetAxisMaximum();
-            chartLight.getAxisLeft().resetAxisMinimum();
-        }
-        if(chartRam != null && chartRam.getAxisLeft() != null) chartRam.getAxisLeft().resetAxisMaximum();
-        if(chartCpu != null && chartCpu.getAxisLeft() != null) chartCpu.getAxisLeft().resetAxisMaximum();
+        spinnerDevices = findViewById(R.id.spinner_devices);
+        etLimit = findViewById(R.id.et_limit);
+        btnLoad = findViewById(R.id.btn_load);
+
+        setupSingleChart(chartRam, Color.GREEN, 0, 0, " MB");
+        setupSingleChart(chartBattery, Color.YELLOW, 0, 100, " %");
+        setupSingleChart(chartTemp, Color.RED, 15, 50, " °C");
+        setupSingleChart(chartLight, Color.CYAN, 0, 1000, " lx");
+        setupSingleChart(chartCpu, Color.MAGENTA, 0, 3.5f, " GHz");
+
+        setupSingleChart(chartAppRam, Color.GREEN, 0, 0, " MB");
+        setupSingleChart(chartAppBattery, Color.YELLOW, 0, 100, " %");
+        setupSingleChart(chartAppTemp, Color.RED, 15, 50, " °C");
+        setupSingleChart(chartAppCpu, Color.MAGENTA, 0, 3.5f, " GHz");
+
+        loadDeviceListIntoSpinner();
+
+        btnLoad.setOnClickListener(v -> {
+            wibruj(20);
+            Object sel = spinnerDevices.getSelectedItem();
+            String selectedDevice = sel == null ? "" : sel.toString().trim();
+            int limit = 20;
+            try { String s = etLimit.getText().toString().trim(); if (!s.isEmpty()) limit = Integer.parseInt(s); } catch (Exception ignored){}
+            if (selectedDevice.isEmpty()) {
+                Toast.makeText(this, "Wybierz urządzenie z listy.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            String path = "statystyki_urzadzen/" + selectedDevice;
+            loadAndPlotIntoFourCharts(path, limit);
+        });
 
         opisParametrow.setOnClickListener(v -> {
             if (aktualnieWybranyEkran == EKRAN_GPS) {
-                if (aktualnaSzerokosc != 0.0 && aktualnaDlugosc != 0.0) {
-                    wibruj(50); otworzMapyGoogle();
-                } else Toast.makeText(this,"Brak współrzędnych GPS.",Toast.LENGTH_SHORT).show();
-            } else if (aktualnieWybranyEkran == EKRAN_SYSTEM) {
-                wibruj(50); przelaczLatarke();
+                if (aktualnaSzerokosc != 0.0 && aktualnaDlugosc != 0.0) { wibruj(50); otworzMapyGoogle(); }
+                else Toast.makeText(this,"Brak współrzędnych GPS.",Toast.LENGTH_SHORT).show();
             }
         });
-        opisParametrow.setOnLongClickListener(v -> {
-            wibruj(100);
-            kopiujDoSchowka(opisParametrow.getText().toString());
-            return true;
-        });
+        opisParametrow.setOnLongClickListener(v -> { wibruj(100); kopiujDoSchowka(opisParametrow.getText().toString()); return true; });
     }
 
+// ==========================================
+// KONFIGURACJA WYKRESÓW
+// ==========================================
+
     /**
-     * @brief Konfiguruje pojedynczy wykres liniowy (styl, osie, dane).
-     * @param chart referencja wykresu.
-     * @param color kolor serii i etykiet.
-     * @param min minimalna wartość osi Y (0, gdy auto-scale).
-     * @param max maksymalna wartość osi Y (0, gdy auto-scale).
+     * @brief Konfiguruje pojedynczy wykres.
+     * @param chart Wykres do konfiguracji
+     * @param color Kolor linii
+     * @param min Minimum osi Y
+     * @param max Maksimum osi Y
+     * @param unit Jednostka
      */
-    private void setupSingleChart(LineChart chart, int color, float min, float max) {
+    private void setupSingleChart(LineChart chart, int color, float min, float max, String unit){
         if (chart == null) return;
         chart.getDescription().setEnabled(false);
         chart.setTouchEnabled(false);
@@ -396,39 +464,56 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         chart.setDrawGridBackground(false);
         chart.setPinchZoom(false);
         chart.setBackgroundColor(Color.parseColor("#222222"));
-
+        chart.setMinOffset(12f);
         LineData data = new LineData();
         data.setValueTextColor(Color.WHITE);
         chart.setData(data);
 
         XAxis x = chart.getXAxis();
-        x.setEnabled(false);
+        x.setEnabled(true);
+        x.setTextColor(Color.LTGRAY);
+        x.setTextSize(9f);
+        x.setDrawGridLines(true);
+        x.setGridColor(Color.DKGRAY);
+        x.setPosition(XAxis.XAxisPosition.BOTTOM);
+        x.setValueFormatter(new ValueFormatter() { @Override public String getFormattedValue(float value) { return String.format(Locale.US, "%.0fs", value); } });
 
         YAxis left = chart.getAxisLeft();
         left.setTextColor(color);
-        if (max > 0) {
-            left.setAxisMinimum(min);
-            left.setAxisMaximum(max);
-        }
+        left.setTextSize(10f);
+        if (max > 0) { left.setAxisMinimum(min); left.setAxisMaximum(max); }
         left.setDrawGridLines(true);
         left.setGridColor(Color.DKGRAY);
-
+        left.setValueFormatter(new ValueFormatter() {
+            @Override public String getFormattedValue(float value) {
+                if (unit.contains("GHz")) return String.format(Locale.US, "%.2f%s", value, unit);
+                else if (unit.contains("°C")) return String.format(Locale.US, "%.1f%s", value, unit);
+                else if (unit.contains("MB")) return String.format(Locale.US, "%.0f%s", value, unit);
+                else if (unit.contains("%")) return String.format(Locale.US, "%.0f%s", value, unit);
+                else if (unit.contains("lx")) return String.format(Locale.US, "%.0f%s", value, unit);
+                return String.format(Locale.US, "%.0f", value);
+            }
+        });
         chart.getAxisRight().setEnabled(false);
         chart.getLegend().setEnabled(false);
     }
 
+// ==========================================
+// OBSŁUGA PRZYCISKÓW
+// ==========================================
+
     /**
-     * @brief Konfiguruje przyciski nawigacyjne i ich zachowania.
-     * @details Przełącza ekrany, start/stop odświeżania i GPS, aktualizuje UI.
+     * @brief Konfiguruje przyciski nawigacji.
      */
-    private void setupButtons() {
+    private void setupButtons(){
         View.OnClickListener listener = v -> {
-            wibruj(30);
+            wibruj(15);
             stopRamRefresher();
             zatrzymajNasluchiwanieGPS();
             stopFirebaseRamListener();
 
             layoutWykresy.setVisibility(View.GONE);
+            layoutAplikacjaWykres.setVisibility(View.GONE);
 
             int id = v.getId();
             if (id == R.id.btn_ogolne) {
@@ -450,37 +535,29 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             } else if (id == R.id.btn_aplikacja) {
                 aktualnieWybranyEkran = EKRAN_APLIKACJA;
                 opisParametrow.setText(daneAplikacjiTekst());
+                layoutAplikacjaWykres.setVisibility(View.VISIBLE);
             }
         };
-
         int[] buttons = {R.id.btn_ogolne, R.id.btn_gps, R.id.btn_zyroskop, R.id.btn_system, R.id.btn_aplikacja};
-        for (int id : buttons) {
-            View btn = findViewById(id);
-            if (btn != null) btn.setOnClickListener(listener);
-        }
+        for (int id : buttons) { View btn = findViewById(id); if (btn != null) btn.setOnClickListener(listener); }
     }
 
-    /* ==== LOGIKA PĘTLI POMIAROWEJ (MONITORING) ==== */
+// ==========================================
+// MONITORING RAM I DANYCH
+// ==========================================
 
     /**
-     * @brief Przygotowuje Runnable odświeżający dane systemowe i wykresy co 1s.
-     * @details
-     * - Zbiera RAM (MB), baterię (%), temperaturę (°C), częstotliwość CPU (GHz).
-     * - Aktualizuje wykresy na ekranie systemowym.
-     * - Uśrednia wartości i publikuje do Firebase co RAM_PUBLISH_INTERVAL_MS.
-     * - Aktualizuje tekstowe ekrany ogólne/systemowe.
+     * @brief Konfiguruje odświeżanie RAM.
      */
-    private void setupRamRefresher() {
+    private void setupRamRefresher(){
         ramRunnable = new Runnable() {
             @Override public void run() {
-                // 1. DANE RAM (MB)
                 ActivityManager.MemoryInfo memInfo = new ActivityManager.MemoryInfo();
                 ((ActivityManager)getSystemService(Context.ACTIVITY_SERVICE)).getMemoryInfo(memInfo);
                 double freeRamMB = memInfo.availMem / (1024.0 * 1024.0);
                 double totalRamMB = memInfo.totalMem / (1024.0 * 1024.0);
                 double usedRamMB = totalRamMB - freeRamMB;
 
-                // 2. DANE BATERII I TEMP
                 float batteryPct = 0;
                 float batteryTemp = 0;
                 Intent bat = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
@@ -488,109 +565,98 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     int level = bat.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
                     int scale = bat.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
                     int tempInt = bat.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0);
-                    if (level != -1 && scale != -1) {
-                        batteryPct = (level / (float)scale) * 100;
-                    }
+                    if (level != -1 && scale != -1) batteryPct = (level / (float)scale) * 100;
                     batteryTemp = tempInt / 10.0f;
                 }
-
-                // 3. DANE CPU (GHz)
                 float cpuFreq = getCpuFreqFloat();
 
-                // 4. AKTUALIZACJA WYKRESÓW
                 if (aktualnieWybranyEkran == EKRAN_SYSTEM && layoutWykresy.getVisibility() == View.VISIBLE) {
-                    updateSingleChart(chartRam, (float)usedRamMB, Color.GREEN);
-                    updateSingleChart(chartBattery, batteryPct, Color.YELLOW);
-                    updateSingleChart(chartTemp, batteryTemp, Color.RED);
-                    updateSingleChart(chartLight, aktualneSwiatloLx, Color.CYAN);
-                    updateSingleChart(chartCpu, cpuFreq, Color.MAGENTA);
+                    updateSingleChart(chartRam, clamp((float)usedRamMB, 0f, 65536f), Color.GREEN);
+                    updateSingleChart(chartBattery, clamp(batteryPct, 0f, 100f), Color.YELLOW);
+                    updateSingleChart(chartTemp, clamp(batteryTemp, -10f, 80f), Color.RED);
+
+                    float light = clamp(aktualneSwiatloLx, 0f, 100_000f);
+                    YAxis lightAxis = chartLight.getAxisLeft();
+                    if (lightAxis != null) {
+                        float curMax = lightAxis.getAxisMaximum();
+                        if (light > curMax * 0.95f) { float newMax = Math.min(light * 1.2f, 50000f); lightAxis.setAxisMaximum(newMax); }
+                    }
+                    updateSingleChart(chartLight, light, Color.CYAN);
+
+                    updateSingleChart(chartCpu, clamp(cpuFreq, 0f, 3.5f), Color.MAGENTA);
                 }
 
-                sumRam += freeRamMB;
-                sumTemp += batteryTemp;
-                sumCpu += cpuFreq;
-                countSamples++;
+                sumRam += usedRamMB; sumTemp += batteryTemp; sumCpu += cpuFreq; countSamples++;
 
-                // 5. WYSYŁKA DO FIREBASE
                 long now = System.currentTimeMillis();
                 if (firebasePolaczony && firebaseDeviceRef!=null && (now - lastPublishTs) >= RAM_PUBLISH_INTERVAL_MS) {
                     lastPublishTs = now;
-
-                    double avgFreeRam = countSamples > 0 ? sumRam / countSamples : freeRamMB;
-                    double avgTemp = countSamples > 0 ? sumTemp / countSamples : batteryTemp;
-                    double avgCpu = countSamples > 0 ? sumCpu / countSamples : cpuFreq;
-
-                    sumRam = 0;
-                    sumTemp = 0;
-                    sumCpu = 0;
-                    countSamples = 0;
-
-                    RamSample sample = new RamSample(
-                            now,
-                            zaokraglij(avgFreeRam, 0),
-                            (int)batteryPct,
-                            zaokraglij(avgTemp, 1),
-                            zaokraglij(avgCpu, 2)
-                    );
-
+                    double avgUsedRam = countSamples>0 ? sumRam/countSamples : usedRamMB;
+                    double avgTemp = countSamples>0 ? sumTemp/countSamples : batteryTemp;
+                    double avgCpu  = countSamples>0 ? sumCpu/countSamples  : cpuFreq;
+                    sumRam = sumTemp = sumCpu = 0; countSamples = 0;
+                    RamSample sample = new RamSample(now, zaokraglij(avgUsedRam, 0), (int)batteryPct, zaokraglij(avgTemp, 1), zaokraglij(avgCpu, 2));
                     firebaseDeviceRef.push().setValue(sample)
-                            .addOnFailureListener(e -> Toast.makeText(MainActivity.this, "Błąd zapisu: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                            .addOnFailureListener(e -> Toast.makeText(MainActivity.this, "Błąd zapisu: "+e.getMessage(), Toast.LENGTH_SHORT).show());
                 }
 
                 if (aktualnieWybranyEkran==EKRAN_OGOLNE) wyswietlInformacjeOgolne();
                 else if (aktualnieWybranyEkran==EKRAN_SYSTEM) wyswietlInformacjeSystemowe();
 
-                ramHandler.postDelayed(this,1000);
+                ramHandler.postDelayed(this, 1000);
             }
         };
     }
 
+// ==========================================
+// POMOCNICZE FUNKCJE
+// ==========================================
+
     /**
-     * @brief Odczytuje bieżącą częstotliwość CPU (cpu0) w GHz.
-     * @return Częstotliwość CPU w GHz lub 0, gdy odczyt się nie powiódł.
+     * @brief Ogranicza wartość do zakresu.
+     * @param v Wartość
+     * @param min Minimum
+     * @param max Maksimum
+     * @return Ograniczona wartość
      */
-    private float getCpuFreqFloat() {
-        try {
-            RandomAccessFile reader = new RandomAccessFile("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq", "r");
+    private float clamp(float v, float min, float max){ return Math.max(min, Math.min(max, v)); }
+
+    /**
+     * @brief Pobiera częstotliwość CPU.
+     * @return Częstotliwość w GHz
+     */
+    private float getCpuFreqFloat(){
+        try (RandomAccessFile reader = new RandomAccessFile("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq","r")){
             String line = reader.readLine();
-            reader.close();
-            return Float.parseFloat(line) / 1000000.0f;
-        } catch (Exception e) {
-            return 0;
-        }
-    }
-
-    /* ==== METODY POMOCNICZE ==== */
-
-    /**
-     * @brief Zaokrągla wartość do podanej liczby miejsc po przecinku.
-     * @param value wartość wejściowa.
-     * @param places liczba miejsc po przecinku (>=0).
-     * @return Wartość po zaokrągleniu.
-     * @throws IllegalArgumentException gdy places < 0.
-     */
-    private double zaokraglij(double value, int places) {
-        if (places < 0) throw new IllegalArgumentException();
-        long factor = (long) Math.pow(10, places);
-        value = value * factor;
-        long tmp = Math.round(value);
-        return (double) tmp / factor;
+            return line==null?0:Float.parseFloat(line)/1_000_000.0f;
+        } catch (Exception e){ return 0; }
     }
 
     /**
-     * @brief Dodaje nowy punkt do wykresu i utrzymuje maks. liczbę punktów (rolling).
-     * @param chart wykres, który ma zostać zaktualizowany.
-     * @param val wartość Y.
-     * @param color kolor serii (używany przy inicjalizacji).
+     * @brief Zaokrągla liczbę.
+     * @param v Wartość
+     * @param places Miejsca po przecinku
+     * @return Zaokrąglona wartość
      */
-    private void updateSingleChart(LineChart chart, float val, int color) {
+    private double zaokraglij(double v, int places){
+        long factor = (long)Math.pow(10, places);
+        long tmp = Math.round(v*factor);
+        return tmp/(double)factor;
+    }
+
+    /**
+     * @brief Aktualizuje wykres pojedynczy.
+     * @param chart Wykres
+     * @param val Wartość
+     * @param color Kolor
+     */
+    private void updateSingleChart(LineChart chart, float val, int color){
         if (chart == null) return;
         if (chart.getData() == null) chart.setData(new LineData());
         LineData data = chart.getData();
         LineDataSet set = (LineDataSet) data.getDataSetByIndex(0);
-
         if (set == null) {
-            set = new LineDataSet(null, "Data");
+            set = new LineDataSet(null, "Dane");
             set.setColor(color);
             set.setLineWidth(2f);
             set.setDrawCircles(false);
@@ -601,67 +667,150 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             set.setFillAlpha(50);
             data.addDataSet(set);
         }
-
-        data.addEntry(new Entry(set.getEntryCount(), val), 0);
+        float xVal = set.getEntryCount();
+        data.addEntry(new Entry(xVal, val), 0);
         data.notifyDataChanged();
 
         if (set.getEntryCount() > MAX_LOCAL_POINTS) {
             set.removeFirst();
-            for (int i=0; i<set.getEntryCount(); i++) {
-                set.getEntryForIndex(i).setX(i);
+            for (int i=0;i<set.getEntryCount();i++){
+                Entry e = set.getEntryForIndex(i);
+                if (e!=null) e.setX(i);
             }
         }
         chart.notifyDataSetChanged();
         chart.moveViewToX(data.getEntryCount());
     }
 
-    /* ==== MODEL DANYCH FIREBASE ==== */
+// ==========================================
+// ŁADOWANIE DANYCH Z FIREBASE
+// ==========================================
 
     /**
-     * @class RamSample
-     * @brief Model próbki danych zapisywanych do Firebase.
-     *
-     * @details
-     * Pola są publiczne, aby Firebase mógł je serializować/deserializować.
+     * @brief Ładuje listę urządzeń do spinnera.
      */
-    public static class RamSample {
-        /** Znacznik czasu (ms since epoch). */
-        public long czas;
-        /** Wolna pamięć RAM [MB] (uśredniona). */
-        public double ram_wolne;
-        /** Poziom baterii [%]. */
-        public int bateria_poziom;
-        /** Temperatura baterii [°C] (uśredniona). */
-        public double bateria_temp;
-        /** Częstotliwość CPU [GHz] (uśredniona). */
-        public double cpu_freq;
+    private void loadDeviceListIntoSpinner() {
+        if (firebaseRootRef == null) return;
+        firebaseRootRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override public void onDataChange(@NonNull DataSnapshot snapshot) {
+                List<String> deviceIds = new ArrayList<>();
+                for (DataSnapshot child : snapshot.getChildren()) {
+                    String key = child.getKey();
+                    if (key != null && !key.isEmpty()) deviceIds.add(key);
+                }
+                if (deviceIds.isEmpty()) {
+                    Toast.makeText(MainActivity.this, "Brak urządzeń w bazie.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                ArrayAdapter<String> adapter = new ArrayAdapter<>(MainActivity.this,
+                        android.R.layout.simple_spinner_item, deviceIds);
+                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                spinnerDevices.setAdapter(adapter);
+                int idx = deviceIds.indexOf(deviceId);
+                if (idx >= 0) spinnerDevices.setSelection(idx);
+            }
+            @Override public void onCancelled(@NonNull DatabaseError error) {
+                Toast.makeText(MainActivity.this, "Błąd listy urządzeń: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
 
-        /** Konstruktor bezargumentowy wymagany przez Firebase. */
-        public RamSample() {}
+    /**
+     * @brief Ładuje i rysuje cztery wykresy z Firebase.
+     * @param path Ścieżka w Firebase
+     * @param limit Limit próbek
+     */
+    private void loadAndPlotIntoFourCharts(String path, int limit) {
+        try {
+            DatabaseReference ref = firebaseDatabase.getReference(path);
 
-        /**
-         * @brief Tworzy próbkę RAM/CPU/Battery.
-         * @param czas znacznik czasu (ms).
-         * @param ram_wolne wolna RAM [MB].
-         * @param bateria_poziom poziom baterii [%].
-         * @param bateria_temp temperatura baterii [°C].
-         * @param cpu_freq częstotliwość CPU [GHz].
-         */
-        public RamSample(long czas, double ram_wolne, int bateria_poziom, double bateria_temp, double cpu_freq){
-            this.czas = czas;
-            this.ram_wolne = ram_wolne;
-            this.bateria_poziom = bateria_poziom;
-            this.bateria_temp = bateria_temp;
-            this.cpu_freq = cpu_freq;
+            clearChart(chartAppRam); clearChart(chartAppBattery); clearChart(chartAppTemp); clearChart(chartAppCpu);
+
+            ref.orderByChild("czas").limitToLast(limit)
+                    .addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override public void onDataChange(@NonNull DataSnapshot snapshot) {
+                            LineData dataRam = chartAppRam.getData(); if (dataRam==null) { dataRam=new LineData(); chartAppRam.setData(dataRam); }
+                            LineData dataBat = chartAppBattery.getData(); if (dataBat==null) { dataBat=new LineData(); chartAppBattery.setData(dataBat); }
+                            LineData dataTemp= chartAppTemp.getData(); if (dataTemp==null){ dataTemp=new LineData(); chartAppTemp.setData(dataTemp); }
+                            LineData dataCpu = chartAppCpu.getData(); if (dataCpu==null) { dataCpu=new LineData(); chartAppCpu.setData(dataCpu); }
+
+                            LineDataSet ramSet = (LineDataSet) dataRam.getDataSetByLabel("RAM użycie (MB)", true);
+                            LineDataSet batSet = (LineDataSet) dataBat.getDataSetByLabel("Bateria (%)", true);
+                            LineDataSet tempSet= (LineDataSet) dataTemp.getDataSetByLabel("Temperatura (°C)", true);
+                            LineDataSet cpuSet = (LineDataSet) dataCpu.getDataSetByLabel("CPU (GHz)", true);
+
+                            if (ramSet==null) { ramSet = baseSet(Color.GREEN, "RAM użycie (MB)"); dataRam.addDataSet(ramSet); }
+                            if (batSet==null) { batSet = baseSet(Color.YELLOW, "Bateria (%)"); dataBat.addDataSet(batSet); }
+                            if (tempSet==null){ tempSet= baseSet(Color.RED, "Temperatura (°C)"); dataTemp.addDataSet(tempSet); }
+                            if (cpuSet==null) { cpuSet = baseSet(Color.MAGENTA, "CPU (GHz)"); dataCpu.addDataSet(cpuSet); }
+
+                            int idx = 0;
+                            for (DataSnapshot child : snapshot.getChildren()) {
+                                RamSample s = child.getValue(RamSample.class);
+                                if (s == null) continue;
+                                dataRam.addEntry(new Entry(idx, clamp((float) s.ram_uzycie, 0f, 65536f)), dataRam.getIndexOfDataSet(ramSet));
+                                dataBat.addEntry(new Entry(idx, clamp((float) s.bateria_poziom, 0f, 100f)), dataBat.getIndexOfDataSet(batSet));
+                                dataTemp.addEntry(new Entry(idx, clamp((float) s.bateria_temp, -10f, 80f)), dataTemp.getIndexOfDataSet(tempSet));
+                                dataCpu.addEntry(new Entry(idx, clamp((float) s.cpu_freq, 0f, 3.5f)), dataCpu.getIndexOfDataSet(cpuSet));
+                                idx++;
+                            }
+
+                            dataRam.notifyDataChanged(); chartAppRam.notifyDataSetChanged(); chartAppRam.moveViewToX(dataRam.getEntryCount());
+                            dataBat.notifyDataChanged(); chartAppBattery.notifyDataSetChanged(); chartAppBattery.moveViewToX(dataBat.getEntryCount());
+                            dataTemp.notifyDataChanged(); chartAppTemp.notifyDataSetChanged(); chartAppTemp.moveViewToX(dataTemp.getEntryCount());
+                            dataCpu.notifyDataChanged(); chartAppCpu.notifyDataSetChanged(); chartAppCpu.moveViewToX(dataCpu.getEntryCount());
+
+                            Toast.makeText(MainActivity.this, "Załadowano " + (snapshot.getChildrenCount()) + " próbek z " + path, Toast.LENGTH_SHORT).show();
+                        }
+                        @Override public void onCancelled(@NonNull DatabaseError error) {
+                            Toast.makeText(MainActivity.this, "Błąd odczytu: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                        }
+                    });
+
+        } catch (Exception e) {
+            Toast.makeText(this, "Błąd: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
-    /* ==== OBSŁUGA SENSORÓW I SPRZĘTU ==== */
+    /**
+     * @brief Tworzy bazowy zestaw danych dla wykresu.
+     * @param color Kolor
+     * @param label Etykieta
+     * @return LineDataSet
+     */
+    private LineDataSet baseSet(int color, String label) {
+        LineDataSet set = new LineDataSet(null, label);
+        set.setColor(color);
+        set.setLineWidth(2f);
+        set.setDrawCircles(false);
+        set.setDrawValues(false);
+        set.setMode(LineDataSet.Mode.CUBIC_BEZIER);
+        set.setDrawFilled(true);
+        set.setFillColor(color);
+        set.setFillAlpha(50);
+        return set;
+    }
 
     /**
-     * @brief Inicjalizuje dostępne sensory: światło, żyroskop, akcelerometr.
+     * @brief Czyści wykres.
+     * @param chart Wykres do wyczyszczenia
      */
-    private void setupSensors() {
+    private void clearChart(LineChart chart) {
+        if (chart == null) return;
+        LineData d = chart.getData();
+        if (d == null) { chart.setData(new LineData()); return; }
+        d.clearValues();
+        chart.invalidate();
+    }
+
+// ==========================================
+// SETUP SENSORS I LOKALIZACJI
+// ==========================================
+
+    /**
+     * @brief Konfiguruje sensory.
+     */
+    private void setupSensors(){
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         if (sensorManager != null) {
             lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
@@ -671,26 +820,25 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     /**
-     * @brief Wyszukuje kamerę z lampą błyskową i zapisuje jej ID do użycia jako latarka.
+     * @brief Konfiguruje latarkę.
      */
-    private void setupFlashlight() {
+    private void setupFlashlight(){
         cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
         try {
             if (cameraManager != null) {
                 for (String id : cameraManager.getCameraIdList()) {
                     CameraCharacteristics ch = cameraManager.getCameraCharacteristics(id);
-                    Boolean flash = ch.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
+                    Boolean flash = ch.getCameraCharacteristics.FLASH_INFO_AVAILABLE;
                     if (flash != null && flash) { cameraId = id; break; }
                 }
             }
-        } catch (CameraAccessException ignored) {}
+        } catch (CameraAccessException ignored){}
     }
 
     /**
-     * @brief Konfiguruje manager lokalizacji, geocoder i listener lokalizacji.
-     * @details Listener aktualizuje współrzędne, dokładność, UI oraz pobiera pogodę.
+     * @brief Konfiguruje lokalizację.
      */
-    private void setupLocation() {
+    private void setupLocation(){
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         geocoder = new Geocoder(this, Locale.getDefault());
         locationListener = new LocationListener() {
@@ -712,70 +860,62 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         };
     }
 
-    /* ==== WYŚWIETLANIE EKRANÓW ==== */
+// ==========================================
+// TEKSTOWE FUNKCJE WYŚWIETLANIA
+// ==========================================
 
     /**
-     * @brief Zwraca opis danych aplikacji (wersja, status, uprawnienia, sensory).
-     * @return Tekst do wyświetlenia.
+     * @brief Zwraca tekst danych aplikacji.
+     * @return Tekst
      */
-    private String daneAplikacjiTekst() {
-        return "DANE APLIKACJI\n-----------------------------------\n\n" +
+    private String daneAplikacjiTekst(){
+        return "DANE APLIKACJI\n=====================================\n\n" +
                 "• Wersja: 2.0 (Kompletna)\n" +
                 "• Status: Aktywna\n" +
-                "• Ostatnia aktualizacja: Teraz\n\n" +
-                "UPRAWNIENIA\n-----------------------------------\n" +
-                " Lokalizacja (GPS/Sieć)\n" +
-                " Internet (Pogoda/Mapy)\n" +
-                " Stan telefonu (Bateria)\n" +
-                " Aparat (Latarka)\n\n" +
-                "WYKORZYSTYWANE SENSORY\n-----------------------------------\n" +
-                " Żyroskop\n" +
-                " Akcelerometr\n" +
-                " Czujnik światła";
+                "• Ostatnia aktualizacja: 11.12.2025\n\n" +
+                "UPRAWNIENIA\n=====================================\n" +
+                " • Lokalizacja (GPS/Sieć)\n" +
+                " • Internet (Pogoda/Mapy)\n" +
+                " • Stan telefonu (Bateria)\n" +
+                " • Aparat (Latarka)\n\n" +
+                "WYKORZYSTYWANE SENSORY\n=====================================\n" +
+                " • Żyroskop\n" +
+                " • Akcelerometr\n" +
+                " • Czujnik światła\n\n" +
+                "WCZYTYWANIE BAZY FIREBASE\n=====================================\n";
     }
 
     /**
-     * @brief Buduje i wyświetla informacje ogólne o urządzeniu (RAM, dysk, bateria).
+     * @brief Wyświetla informacje ogólne.
      */
-    private void wyswietlInformacjeOgolne() {
+    private void wyswietlInformacjeOgolne(){
         ActivityManager.MemoryInfo mi=new ActivityManager.MemoryInfo();
         ((ActivityManager)getSystemService(Context.ACTIVITY_SERVICE)).getMemoryInfo(mi);
         double total=mi.totalMem/(1024.0*1024.0*1024.0);
         double free=mi.availMem/(1024.0*1024.0*1024.0);
 
         Intent bs=registerReceiver(null,new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
-        String pct="---", temp="---", volt="---", tech="---", stat="---";
+        String pct="---", temp="---", volt="---";
         if(bs!=null) {
             int level=bs.getIntExtra(BatteryManager.EXTRA_LEVEL,-1);
             int scale=bs.getIntExtra(BatteryManager.EXTRA_SCALE,-1);
             if(level!=-1 && scale!=-1) pct=(int)((level/(float)scale)*100)+"%";
             temp=String.format(Locale.US,"%.1f°C", bs.getIntExtra(BatteryManager.EXTRA_TEMPERATURE,0)/10.0f);
             volt=bs.getIntExtra(BatteryManager.EXTRA_VOLTAGE,0)+" mV";
-            tech=bs.getStringExtra(BatteryManager.EXTRA_TECHNOLOGY);
-            if(tech==null) tech="Li-ion";
-            int st=bs.getIntExtra(BatteryManager.EXTRA_STATUS,-1);
-            if(st==BatteryManager.BATTERY_STATUS_CHARGING) stat="Ładuje się ⚡";
-            else if(st==BatteryManager.BATTERY_STATUS_DISCHARGING) stat="Rozładowywanie";
-            else if(st==BatteryManager.BATTERY_STATUS_FULL) stat="Naładowana 🔋";
-            else stat="Nieznany";
         }
 
-        double capacity = getBatteryCapacity(this);
-        String capStr = (capacity > 0) ? String.format(Locale.US, "%.0f mAh", capacity) : "Nieznana";
         String dysk=getPojemnoscDysku();
-
         String txt=String.format(Locale.getDefault(),
-                "INFORMACJE O URZĄDZENIU\n-----------------------------------\n• Model: %s\n• Producent: %s\n\nPAMIĘĆ I DYSK\n-----------------------------------\n• RAM Wolne: %.2f GB\n• RAM Całkowite: %.2f GB\n• DYSK %s\n\nBATERIA\n-----------------------------------\n• Poziom: %s\n• Pojemność: %s\n• Status: %s\n• Technologia: %s\n• Temperatura: %s\n• Napięcie: %s\n\n(Przytrzymaj tekst, aby skopiować)",
-                Build.MODEL, Build.MANUFACTURER, free, total, dysk, pct, capStr, stat, tech, temp, volt);
+                "INFORMACJE O URZĄDZENIU\n-----------------------------------\n• Model: %s\n• Producent: %s\n\nPAMIĘĆ I DYSK\n-----------------------------------\n• RAM Wolne: %.2f GB\n• RAM Całkowite: %.2f GB\n• DYSK %s\n\nBATERIA\n-----------------------------------\n• Poziom: %s\n• Temperatura: %s\n• Napięcie: %s\n\n(Przytrzymaj tekst, aby skopiować)",
+                Build.MODEL, Build.MANUFACTURER, free, total, dysk, pct, temp, volt);
         opisParametrow.setText(txt);
     }
 
     /**
-     * @brief Buduje i wyświetla informacje GPS: adres, współrzędne, dokładność.
-     * @note Oznaczona @SuppressLint dla lintera — rzeczywiste sprawdzenie uprawnień jest wykonywane.
+     * @brief Wyświetla informacje GPS.
      */
     @SuppressLint("MissingPermission")
-    private void wyswietlInformacjeGPS() {
+    private void wyswietlInformacjeGPS(){
         StringBuilder sb=new StringBuilder("PARAMETRY GPS\n-----------------------------------\n\n");
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED) {
             sb.append("🔴 Brak uprawnień GPS.");
@@ -794,28 +934,35 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     /**
-     * @brief Buduje i wyświetla informacje systemowe: CPU, światło, Android, latarka, ekran.
+     * @brief Wyświetla informacje systemowe.
      */
-    private void wyswietlInformacjeSystemowe() {
-        DisplayMetrics m=new DisplayMetrics();
-        getWindowManager().getDefaultDisplay().getMetrics(m);
+    private void wyswietlInformacjeSystemowe(){
+        int widthPx,heightPx,densityDpi;
+        if (Build.VERSION.SDK_INT >= 30) {
+            WindowManager wm = getSystemService(WindowManager.class);
+            WindowMetrics metrics = wm.getCurrentWindowMetrics();
+            Rect b = metrics.getBounds(); widthPx=b.width(); heightPx=b.height();
+            densityDpi = getResources().getDisplayMetrics().densityDpi;
+        } else {
+            DisplayMetrics m=new DisplayMetrics();
+            getWindowManager().getDefaultDisplay().getMetrics(m);
+            widthPx=m.widthPixels; heightPx=m.heightPixels; densityDpi=m.densityDpi;
+        }
         int cores=Runtime.getRuntime().availableProcessors();
         String abi=(Build.SUPPORTED_ABIS!=null && Build.SUPPORTED_ABIS.length>0)? Build.SUPPORTED_ABIS[0]:"N/D";
-        String cpu=getCpuFreq();
         String torch=isFlashlightOn? "Włączona 💡":"Wyłączona";
-
         float cpuVal = getCpuFreqFloat();
 
         String s=String.format(Locale.US,
-                "PROCESOR\n-----------------------------------\n• Rdzenie: %d\n• Taktowanie: %.2f GHz\n• Architektura: %s\n\nINFORMACJE SYSTEMOWE\n-----------------------------------\n• Światło: %.1f lx\n• Android: %s (API %d)\n• Latarka: %s (Kliknij)\n\nEKRAN\n-----------------------------------\n• Rozdzielczość: %dx%d px\n• Gęstość: %d dpi\n\n(Poniżej wykres użycia pamięci RAM na żywo)",
-                cores,cpuVal,abi,aktualneSwiatloLx,Build.VERSION.RELEASE,Build.VERSION.SDK_INT,torch,m.widthPixels,m.heightPixels,m.densityDpi);
+                "PROCESOR\n-----------------------------------\n• Rdzenie: %d\n• Taktowanie: %.2f GHz\n• Architektura: %s\n\nINFORMACJE SYSTEMOWE\n-----------------------------------\n• Światło: %.1f lx\n• Android: %s (API %d)\n• Latarka: %s\n\nEKRAN\n-----------------------------------\n• Rozdzielczość: %dx%d px\n• Gęstość: %d dpi\n\n(Poniżej wykres użycia pamięci RAM na żywo)",
+                cores,cpuVal,abi,aktualneSwiatloLx,Build.VERSION.RELEASE,Build.VERSION.SDK_INT,torch,widthPx,heightPx,densityDpi);
         opisParametrow.setText(s);
     }
 
     /**
-     * @brief Wyświetla bieżące odczyty żyroskopu (rad/s) i akcelerometru (m/s²).
+     * @brief Wyświetla żyroskop.
      */
-    private void wyswietlZyroskop() {
+    private void wyswietlZyroskop(){
         String s=String.format(Locale.US,
                 "ŻYROSKOP (rad/s)\n-----------------------------------\nX: %.2f\nY: %.2f\nZ: %.2f\n\nAKCELEROMETR (m/s²)\n-----------------------------------\nX: %.2f\nY: %.2f\nZ: %.2f\n\n(Przytrzymaj tekst, aby skopiować)",
                 aktualnyZyroskop[0],aktualnyZyroskop[1],aktualnyZyroskop[2],
@@ -823,33 +970,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         opisParametrow.setText(s);
     }
 
-    /* ==== POZOSTAŁE METODY POMOCNICZE (SYSTEMOWE) ==== */
+// ==========================================
+// POMOCNICZE FUNKCJE SYSTEMOWE
+// ==========================================
 
     /**
-     * @brief Odczytuje uśrednioną pojemność baterii z PowerProfile (mAh).
-     * @param context kontekst aplikacji.
-     * @return Pojemność baterii w mAh lub 0 przy błędzie.
+     * @brief Pobiera pojemność dysku.
+     * @return Tekst pojemności
      */
-    private double getBatteryCapacity(Context context) {
-        Object mPowerProfile;
-        double batteryCapacity = 0;
-        final String POWER_PROFILE_CLASS = "com.android.internal.os.PowerProfile";
-        try {
-            mPowerProfile = Class.forName(POWER_PROFILE_CLASS)
-                    .getConstructor(Context.class)
-                    .newInstance(context);
-            batteryCapacity = (Double) Class.forName(POWER_PROFILE_CLASS)
-                    .getMethod("getAveragePower", String.class)
-                    .invoke(mPowerProfile, "battery.capacity");
-        } catch (Exception e) { e.printStackTrace(); }
-        return batteryCapacity;
-    }
-
-    /**
-     * @brief Zwraca opis pojemności i wolnego miejsca na dysku danych aplikacji.
-     * @return Tekst z wolnym i całkowitym miejscem [GB].
-     */
-    private String getPojemnoscDysku() {
+    private String getPojemnoscDysku(){
         try {
             File path= Environment.getDataDirectory();
             StatFs stat=new StatFs(path.getPath());
@@ -863,12 +992,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     /**
-     * @brief Próbuje zgeokodować współrzędne na zwięzły adres (miejscowość + ulica).
-     * @param lat szerokość geograficzna.
-     * @param lon długość geograficzna.
-     * @return Sformatowany adres lub komunikat o niedostępności.
+     * @brief Pobiera adres z współrzędnych.
+     * @param lat Szerokość
+     * @param lon Długość
+     * @return Adres
      */
-    private String pobierzAdres(double lat,double lon) {
+    private String pobierzAdres(double lat,double lon){
         if(!Geocoder.isPresent()) return "Geokodowanie niedostępne";
         try {
             List<Address> list=geocoder.getFromLocation(lat,lon,1);
@@ -883,24 +1012,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     /**
-     * @brief Odczytuje częstotliwość CPU (cpu0) i zwraca jako tekst "x.xx GHz".
-     * @return Tekstowa reprezentacja częstotliwości CPU lub "Nieznane".
+     * @brief Sprawdza i prosi o uprawnienia GPS.
      */
-    private String getCpuFreq() {
-        try (RandomAccessFile r=new RandomAccessFile("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq","r")) {
-            String line=r.readLine();
-            if(line!=null) {
-                long f=Long.parseLong(line);
-                return String.format(Locale.US,"%.2f GHz", f/1_000_000.0);
-            }
-        } catch (Exception ignored){}
-        return "Nieznane";
-    }
-
-    /**
-     * @brief Sprawdza i (jeśli potrzeba) prosi o uprawnienia GPS, a następnie uruchamia nasłuchiwanie.
-     */
-    private void sprawdzIpoprosOPermISjeGPS() {
+    private void sprawdzIpoprosOPermISjeGPS(){
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED) {
             uruchomNasluchiwanieGPS();
         } else {
@@ -909,13 +1023,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     /**
-     * @brief Rejestruje nasłuchiwanie lokalizacji z providerów GPS/NETWORK (jeśli dostępni).
-     * @note Oznaczone @SuppressLint — rzeczywiste sprawdzenie uprawnień wykonywane przed wywołaniem.
+     * @brief Uruchamia nasłuchiwanie GPS.
      */
     @SuppressLint("MissingPermission")
-    private void uruchomNasluchiwanieGPS() {
+    private void uruchomNasluchiwanieGPS(){
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED) return;
-
         try {
             if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER))
                 locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,2000,5,locationListener);
@@ -925,21 +1037,20 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     /**
-     * @brief Zatrzymuje nasłuchiwanie lokalizacji.
+     * @brief Zatrzymuje nasłuchiwanie GPS.
      */
-    private void zatrzymajNasluchiwanieGPS() {
+    private void zatrzymajNasluchiwanieGPS(){
         if(locationManager!=null && locationListener!=null) {
             try { locationManager.removeUpdates(locationListener); } catch (SecurityException ignored){}
         }
     }
 
     /**
-     * @brief Pobiera dane pogodowe z OpenWeather dla podanych współrzędnych.
-     * @param lat szerokość geograficzna.
-     * @param lon długość geograficzna.
-     * @details Wykonuje zapytanie w ExecutorService i aktualizuje UI na głównym wątku.
+     * @brief Pobiera dane pogodowe.
+     * @param lat Szerokość
+     * @param lon Długość
      */
-    private void pobierzDanePogodowe(double lat,double lon) {
+    private void pobierzDanePogodowe(double lat,double lon){
         executorService.execute(() -> {
             String resp="";
             try {
@@ -952,6 +1063,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     while((line=in.readLine())!=null) sb.append(line);
                     in.close(); resp=sb.toString();
                 }
+                c.disconnect();
             } catch (Exception ignored){}
             String finalResp=resp;
             mainHandler.post(() -> { if(aktualnieWybranyEkran==EKRAN_GPS && !finalResp.isEmpty()) sformatujIWyswietlPogode(finalResp); });
@@ -959,10 +1071,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     /**
-     * @brief Formatuje JSON odpowiedzi pogodowej i dokleja blok do aktualnego opisu.
-     * @param json surowy JSON z OpenWeather.
+     * @brief Formatuje i wyświetla pogodę.
+     * @param json JSON z pogodą
      */
-    private void sformatujIWyswietlPogode(String json) {
+    private void sformatujIWyswietlPogode(String json){
         try {
             JSONObject j=new JSONObject(json);
             String miasto=j.optString("name","Nieznane");
@@ -986,82 +1098,38 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     /**
-     * @brief Uruchamia pętlę odświeżania danych systemowych (co 1s).
+     * @brief Uruchamia odświeżanie RAM.
      */
-    private void startRamRefresher() {
-        ramHandler.removeCallbacks(ramRunnable);
-        ramHandler.post(ramRunnable);
-    }
+    private void startRamRefresher(){ ramHandler.removeCallbacks(ramRunnable); ramHandler.post(ramRunnable); }
 
     /**
-     * @brief Zatrzymuje pętlę odświeżania danych systemowych.
+     * @brief Zatrzymuje odświeżanie RAM.
      */
-    private void stopRamRefresher() {
-        ramHandler.removeCallbacks(ramRunnable);
-    }
+    private void stopRamRefresher(){ ramHandler.removeCallbacks(ramRunnable); }
 
     /**
-     * @brief Przykładowe przygotowanie listenera Firebase (nieużywany).
+     * @brief Otwiera mapy Google.
      */
-    private void startFirebaseRamListener() {
-        if (!firebasePolaczony || firebaseDeviceRef==null || ramFirebaseListener!=null) return;
-        ramFirebaseListener = new ValueEventListener() {
-            @Override public void onDataChange(@NonNull DataSnapshot snapshot) {}
-            @Override public void onCancelled(@NonNull DatabaseError error) {}
-        };
-    }
-
-    /**
-     * @brief Usuwa listener RAM z Firebase, jeśli był dodany.
-     */
-    private void stopFirebaseRamListener() {
-        if (firebaseDeviceRef!=null && ramFirebaseListener!=null) {
-            firebaseDeviceRef.removeEventListener(ramFirebaseListener);
-            ramFirebaseListener=null;
-        }
-    }
-
-    /**
-     * @brief Otwiera aplikację map z pinezką w bieżącej lokalizacji.
-     */
-    private void otworzMapyGoogle() {
+    private void otworzMapyGoogle(){
         try {
             String uri = String.format(Locale.US,"geo:%f,%f?q=%f,%f(Tu jesteś)",aktualnaSzerokosc,aktualnaDlugosc,aktualnaSzerokosc,aktualnaDlugosc);
             startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(uri)));
-        } catch (Exception e) {
-            Toast.makeText(this,"Nie znaleziono aplikacji map.",Toast.LENGTH_LONG).show();
-        }
+        } catch (Exception e) { Toast.makeText(this,"Nie znaleziono aplikacji map.",Toast.LENGTH_LONG).show(); }
     }
 
     /**
-     * @brief Przełącza latarkę (torch) jeśli dostępna i posiada uprawnienia.
-     * @details Aktualizuje opis ekranu systemowego po przełączeniu.
+     * @brief Przełącza latarkę (pominięta).
      */
-    private void przelaczLatarke() {
-        if (cameraManager==null || cameraId==null) {
-            Toast.makeText(this,"Brak lampy błyskowej",Toast.LENGTH_SHORT).show();
-            return;
-        }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)!=PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.CAMERA},REQUEST_CODE_CAMERA_PERMISSION);
-            return;
-        }
-        try {
-            cameraManager.setTorchMode(cameraId, !isFlashlightOn);
-            isFlashlightOn = !isFlashlightOn;
-            if (aktualnieWybranyEkran==EKRAN_SYSTEM) wyswietlInformacjeSystemowe();
-            Toast.makeText(this,isFlashlightOn? "Latarka włączona":"Latarka wyłączona",Toast.LENGTH_SHORT).show();
-        } catch (CameraAccessException | IllegalArgumentException e) {
-            Toast.makeText(this,"Błąd latarki",Toast.LENGTH_SHORT).show();
-        }
+    private void przelaczLatarke(){
+        Toast.makeText(this,"Latarka pominięta w tej wersji",Toast.LENGTH_SHORT).show();
     }
 
     /**
-     * @brief Wibruje urządzeniem przez podany czas.
-     * @param ms czas wibracji w milisekundach.
+     * @brief Wibruje urządzenie.
+     * @param ms Czas wibracji w ms
      */
     @SuppressLint("MissingPermission")
-    private void wibruj(int ms) {
+    private void wibruj(int ms){
         Vibrator v=(Vibrator)getSystemService(Context.VIBRATOR_SERVICE);
         if (v!=null && v.hasVibrator()) {
             if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.O)
@@ -1071,57 +1139,281 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     /**
-     * @brief Kopiuje tekst do schowka i pokazuje komunikat.
-     * @param txt tekst do skopiowania.
+     * @brief Kopiuje tekst do schowka.
+     * @param txt Tekst do skopiowania
      */
-    private void kopiujDoSchowka(String txt) {
+    private void kopiujDoSchowka(String txt){
         ClipboardManager cb=(ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE);
-        cb.setPrimaryClip(ClipData.newPlainText("Dane",txt));
-        Toast.makeText(this,"Skopiowano",Toast.LENGTH_SHORT).show();
+        if (cb!=null) { cb.setPrimaryClip(ClipData.newPlainText("Dane",txt)); Toast.makeText(this,"Skopiowano",Toast.LENGTH_SHORT).show(); }
     }
 
+// ==========================================
+// OBSŁUGA SENSORÓW
+// ==========================================
+
     /**
-     * @brief Callback dla wyników żądań uprawnień (GPS/Kamera).
-     * @param requestCode kod żądania.
-     * @param permissions tablica żądanych uprawnień.
-     * @param grantResults wyniki przyznania.
+     * @brief Obsługuje zmianę wartości sensorów.
+     * @param event Wydarzenie sensora
      */
-    @Override public void onRequestPermissionsResult(int requestCode,@NonNull String[] permissions,@NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode,permissions,grantResults);
-        if(requestCode==REQUEST_CODE_GPS_PERMISSION) {
-            if(grantResults.length>0 && grantResults[0]==PackageManager.PERMISSION_GRANTED) {
-                uruchomNasluchiwanieGPS();
-                if(aktualnieWybranyEkran==EKRAN_GPS) wyswietlInformacjeGPS();
-            } else Toast.makeText(this,"Brak zgody na GPS",Toast.LENGTH_LONG).show();
-        } else if (requestCode==REQUEST_CODE_CAMERA_PERMISSION) {
-            if (grantResults.length>0 && grantResults[0]==PackageManager.PERMISSION_GRANTED) {
-                przelaczLatarke();
-            } else Toast.makeText(this,"Brak zgody na kamerę (latarka)",Toast.LENGTH_SHORT).show();
+    @Override public void onSensorChanged(SensorEvent event){
+        int type = event.sensor.getType();
+        if (type==Sensor.TYPE_LIGHT) {
+            aktualneSwiatloLx = event.values != null && event.values.length>0 ? event.values[0] : 0f;
+            if (aktualnieWybranyEkran==EKRAN_SYSTEM) wyswietlInformacjeSystemowe();
+        } else if (type==Sensor.TYPE_GYROSCOPE) {
+            aktualnyZyroskop[0]=event.values[0]; aktualnyZyroskop[1]=event.values[1]; aktualnyZyroskop[2]=event.values[2];
+            if (aktualnieWybranyEkran==EKRAN_ZYROSKOP) wyswietlZyroskop();
+        } else if (type==Sensor.TYPE_ACCELEROMETER) {
+            aktualnyAkcelerometr[0]=event.values[0]; aktualnyAkcelerometr[1]=event.values[1]; aktualnyAkcelerometr[2]=event.values[2];
+            if (aktualnieWybranyEkran==EKRAN_ZYROSKOP) wyswietlZyroskop();
         }
     }
 
     /**
-     * @brief Obsługa zdarzeń sensorów: światło, żyroskop, akcelerometr.
-     * @param e zdarzenie sensora.
+     * @brief Obsługuje zmianę dokładności sensora.
+     * @param sensor Sensor
+     * @param accuracy Dokładność
      */
-    @Override public void onSensorChanged(SensorEvent e) {
-        int t=e.sensor.getType();
-        if (t==Sensor.TYPE_LIGHT) {
-            aktualneSwiatloLx=e.values[0];
-            if(aktualnieWybranyEkran==EKRAN_SYSTEM) wyswietlInformacjeSystemowe();
-        } else if (t==Sensor.TYPE_GYROSCOPE) {
-            aktualnyZyroskop[0]=e.values[0]; aktualnyZyroskop[1]=e.values[1]; aktualnyZyroskop[2]=e.values[2];
-            if(aktualnieWybranyEkran==EKRAN_ZYROSKOP) wyswietlZyroskop();
-        } else if (t==Sensor.TYPE_ACCELEROMETER) {
-            aktualnyAkcelerometr[0]=e.values[0]; aktualnyAkcelerometr[1]=e.values[1]; aktualnyAkcelerometr[2]=e.values[2];
-            if(aktualnieWybranyEkran==EKRAN_ZYROSKOP) wyswietlZyroskop();
-        }
+    @Override public void onAccuracyChanged(Sensor sensor, int accuracy){}
+
+// ==========================================
+// LISTENERY FIREBASE
+// ==========================================
+
+    /**
+     * @brief Uruchamia listener RAM Firebase.
+     */
+    private void startFirebaseRamListener() {
+        if (!firebasePolaczony || firebaseDeviceRef == null || ramFirebaseListener != null) return;
+        ramFirebaseListener = new ValueEventListener() {
+            @Override public void onDataChange(@NonNull DataSnapshot snapshot) { }
+            @Override public void onCancelled(@NonNull DatabaseError error) { }
+        };
+        firebaseDeviceRef.addValueEventListener(ramFirebaseListener);
     }
 
     /**
-     * @brief Nieużywane: zmiana dokładności sensora.
-     * @param sensor sensor.
-     * @param acc nowa dokładność.
+     * @brief Zatrzymuje listener RAM Firebase.
      */
-    @Override public void onAccuracyChanged(Sensor sensor,int acc){}
+    private void stopFirebaseRamListener() {
+        if (firebaseDeviceRef != null && ramFirebaseListener != null) {
+            firebaseDeviceRef.removeEventListener(ramFirebaseListener);
+            ramFirebaseListener = null;
+        }
+    }
+
+// ==========================================
+// KLASA USŁUGI MONITORINGU
+// ==========================================
+
+    /**
+     * @class SensorMonitorService
+     * @brief Klasa usługi monitoringu w tle, odpowiedzialna za ciągłe zbieranie danych i notyfikacje.
+     */
+    public static class SensorMonitorService extends Service {
+        /** @brief ID kanału notyfikacji */
+        private static final String CHANNEL_ID = "mobile_sensor_monitor_channel";
+        /** @brief ID notyfikacji */
+        private static final int NOTIFICATION_ID = 1001;
+
+        /** @brief Handler */
+        private final Handler handler = new Handler(Looper.getMainLooper());
+        /** @brief Runnable pętli */
+        private Runnable loop;
+
+        /** @brief Czy Firebase gotowe */
+        private boolean firebaseReady = false;
+        /** @brief Referencja Firebase */
+        private DatabaseReference firebaseDeviceRef;
+        /** @brief ID urządzenia */
+        private String deviceId;
+
+        /** @brief Interwał publikacji */
+        private static final long PUBLISH_INTERVAL_MS = 60_000;
+        /** @brief Ostatni timestamp publikacji */
+        private long lastPublishTs = 0;
+        /** @brief Sumy próbek */
+        private double sumRam = 0, sumTemp = 0, sumCpu = 0;
+        /** @brief Liczba próbek */
+        private int countSamples = 0;
+
+        /**
+         * @brief Metoda wywoływana przy tworzeniu usługi.
+         */
+        @Override public void onCreate(){
+            super.onCreate();
+            createNotificationChannel();
+            startForeground(NOTIFICATION_ID, buildNotification("Monitoring w toku..."));
+            initFirebase();
+            setupLoop();
+            handler.post(loop);
+            pushNow();
+        }
+
+        /**
+         * @brief Inicjalizuje Firebase dla usługi.
+         */
+        private void initFirebase(){
+            try {
+                FirebaseApp.initializeApp(this);
+                FirebaseDatabase db = FirebaseDatabase.getInstance(FIREBASE_URL);
+                deviceId = Build.MODEL.replace(" ", "_") + "_" + (System.currentTimeMillis() % 10000);
+                firebaseDeviceRef = db.getReference("statystyki_urzadzen").child(deviceId);
+                firebaseReady = true;
+            } catch (Exception e){ firebaseReady = false; }
+        }
+
+        /**
+         * @brief Konfiguruje pętlę monitoringu.
+         */
+        private void setupLoop(){
+            loop = new Runnable() {
+                @Override public void run() {
+                    try {
+                        ActivityManager.MemoryInfo memInfo = new ActivityManager.MemoryInfo();
+                        ((ActivityManager)getSystemService(Context.ACTIVITY_SERVICE)).getMemoryInfo(memInfo);
+                        double freeRamMB  = memInfo.availMem / (1024.0 * 1024.0);
+                        double totalRamMB = memInfo.totalMem / (1024.0 * 1024.0);
+                        double usedRamMB  = totalRamMB - freeRamMB;
+
+                        float batteryPct = 0;
+                        float batteryTemp = 0;
+                        Intent bat = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+                        if (bat != null) {
+                            int level = bat.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+                            int scale = bat.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+                            int tempInt = bat.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0);
+                            if (level != -1 && scale != -1) batteryPct = (level / (float)scale) * 100;
+                            batteryTemp = tempInt / 10.0f;
+                        }
+                        float cpuFreq = getCpuFreqFloat();
+
+                        sumRam += usedRamMB; sumTemp += batteryTemp; sumCpu += cpuFreq; countSamples++;
+
+                        long now = System.currentTimeMillis();
+                        if (firebaseReady && firebaseDeviceRef!=null && (now - lastPublishTs) >= PUBLISH_INTERVAL_MS) {
+                            lastPublishTs = now;
+                            double avgUsedRam = countSamples>0? sumRam/countSamples : usedRamMB;
+                            double avgTemp    = countSamples>0? sumTemp/countSamples : batteryTemp;
+                            double avgCpu     = countSamples>0? sumCpu/countSamples  : cpuFreq;
+                            sumRam=sumTemp=sumCpu=0; countSamples=0;
+
+                            RamSample sample = new RamSample(now, round(avgUsedRam,0), (int)batteryPct, round(avgTemp,1), round(avgCpu,2));
+                            firebaseDeviceRef.push().setValue(sample);
+                        }
+
+                        updateNotification(String.format(Locale.US,"RAM: %.0fMB • CPU: %.2fGHz • Bat: %.0f%% • Temp: %.1f°C",
+                                usedRamMB, cpuFreq, batteryPct, batteryTemp));
+                    } catch (Exception ignored) {
+                    } finally {
+                        handler.postDelayed(this, 1000);
+                    }
+                }
+            };
+        }
+
+        /**
+         * @brief Wysyła natychmiastową próbkę.
+         */
+        private void pushNow(){
+            if (!firebaseReady || firebaseDeviceRef==null) return;
+            try {
+                ActivityManager.MemoryInfo memInfo = new ActivityManager.MemoryInfo();
+                ((ActivityManager)getSystemService(Context.ACTIVITY_SERVICE)).getMemoryInfo(memInfo);
+                double totalRamMB = memInfo.totalMem / (1024.0 * 1024.0);
+                double freeRamMB = memInfo.availMem / (1024.0 * 1024.0);
+                double usedRamMB = totalRamMB - freeRamMB;
+                float batteryPct = 0;
+                float batteryTemp = 0;
+                Intent bat = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+                if (bat != null) {
+                    int level = bat.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+                    int scale = bat.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+                    int tempInt = bat.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0);
+                    if (level != -1 && scale != -1) batteryPct = (level / (float)scale) * 100;
+                    batteryTemp = tempInt / 10.0f;
+                }
+                float cpuFreq = getCpuFreqFloat();
+                RamSample sample = new RamSample(System.currentTimeMillis(), round(usedRamMB,0), (int)batteryPct, round(batteryTemp,1), round(cpuFreq,2));
+                firebaseDeviceRef.push().setValue(sample);
+            } catch (Exception ignored){}
+        }
+
+        /**
+         * @brief Buduje notyfikację.
+         * @param content Treść
+         * @return Notification
+         */
+        private Notification buildNotification(String content){
+            return new NotificationCompat.Builder(this, CHANNEL_ID)
+                    .setContentTitle("MobileSensor — Monitor")
+                    .setContentText(content)
+                    .setSmallIcon(R.drawable.ic_stat_notify)
+                    .setOngoing(true)
+                    .setOnlyAlertOnce(true)
+                    .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+                    .build();
+        }
+
+        /**
+         * @brief Aktualizuje notyfikację.
+         * @param content Treść
+         */
+        private void updateNotification(String content){
+            NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            if (nm!=null) nm.notify(NOTIFICATION_ID, buildNotification(content));
+        }
+
+        /**
+         * @brief Tworzy kanał notyfikacji.
+         */
+        private void createNotificationChannel(){
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                NotificationChannel ch = new NotificationChannel(CHANNEL_ID, "MobileSensor Monitor", NotificationManager.IMPORTANCE_LOW);
+                ch.setDescription("Stały monitoring RAM/CPU/Bateria");
+                NotificationManager nm = getSystemService(NotificationManager.class);
+                if (nm!=null) nm.createNotificationChannel(ch);
+            }
+        }
+
+        /**
+         * @brief Pobiera częstotliwość CPU.
+         * @return Częstotliwość w GHz
+         */
+        private float getCpuFreqFloat(){
+            try (RandomAccessFile reader = new RandomAccessFile("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq","r")){
+                String line=reader.readLine();
+                return line==null?0:Float.parseFloat(line)/1_000_000.0f;
+            } catch (Exception e){ return 0; }
+        }
+
+        /**
+         * @brief Zaokrągla liczbę.
+         * @param v Wartość
+         * @param p Miejsca po przecinku
+         * @return Zaokrąglona wartość
+         */
+        private double round(double v,int p){ long f=(long)Math.pow(10,p); return Math.round(v*f)/(double)f; }
+
+        /**
+         * @brief Binder (nie używany).
+         * @param intent Intent
+         * @return null
+         */
+        @Nullable @Override public IBinder onBind(Intent intent){ return null; }
+
+        /**
+         * @brief Uruchamia usługę.
+         * @param intent Intent
+         * @param flags Flagi
+         * @param startId ID startu
+         * @return START_STICKY
+         */
+        @Override public int onStartCommand(Intent intent, int flags, int startId){ return START_STICKY; }
+
+        /**
+         * @brief Zatrzymuje usługę.
+         */
+        @Override public void onDestroy(){ handler.removeCallbacksAndMessages(null); super.onDestroy(); }
+    }
 }
