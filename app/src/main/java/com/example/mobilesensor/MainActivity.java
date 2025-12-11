@@ -649,16 +649,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         return "DANE APLIKACJI\n-----------------------------------\n\n" +
                 "• Wersja: 2.0 (Kompletna)\n" +
                 "• Status: Aktywna\n" +
-                "• Ostatnia aktualizacja: Teraz\n\n" +
+                "• Ostatnia aktualizacja: 11.12.2025 19:05\n\n" +
                 "UPRAWNIENIA\n-----------------------------------\n" +
-                " Lokalizacja (GPS/Sieć)\n" +
-                " Internet (Pogoda/Mapy)\n" +
-                " Stan telefonu (Bateria)\n" +
-                " Aparat (Latarka)\n\n" +
+                " • Lokalizacja (GPS/Sieć)\n" +
+                " • Internet (Pogoda/Mapy)\n" +
+                " • Stan telefonu (Bateria)\n" +
+                " • Aparat (Latarka)\n\n" +
                 "WYKORZYSTYWANE SENSORY\n-----------------------------------\n" +
-                " Żyroskop\n" +
-                " Akcelerometr\n" +
-                " Czujnik światła";
+                " • Żyroskop\n" +
+                " • Akcelerometr\n" +
+                " • Czujnik światła\n\n" +
+                "WCZYTYWANIE BAZY FIREBASE\n-----------------------------------\n";
     }
 
     private void wyswietlInformacjeOgolne(){

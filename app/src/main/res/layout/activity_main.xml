@@ -10,17 +10,17 @@
 
     <ImageView
         android:id="@+id/logo"
-        android:layout_width="wrap_content"
-        android:layout_height="80dp"
-        android:src="@drawable/psm"
-        android:adjustViewBounds="true"
-        android:scaleType="fitCenter"
+        android:layout_width="324dp"
+        android:layout_height="70dp"
         android:layout_gravity="center_horizontal"
-        android:contentDescription="Logo aplikacji" />
+        android:adjustViewBounds="true"
+        android:contentDescription="Logo aplikacji"
+        android:scaleType="fitCenter"
+        android:src="@drawable/psm" />
 
-    <LinearLayout
+     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="58dp"
+        android:layout_height="65dp"
         android:orientation="horizontal"
         android:weightSum="5"
         android:gravity="center"
@@ -32,8 +32,7 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:text="OGÓLNE"
-            android:textSize="6sp"
-            android:maxLines="1"
+            android:textSize="9sp"
             app:backgroundTint="#FF6666"
             app:cornerRadius="0dp"
             app:strokeColor="#000000"
@@ -47,8 +46,7 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:text="GPS"
-            android:textSize="7sp"
-            android:maxLines="1"
+            android:textSize="10sp"
             app:backgroundTint="#33CCFF"
             app:cornerRadius="0dp"
             app:strokeColor="#000000"
@@ -56,20 +54,19 @@
             android:insetTop="0dp"
             android:insetBottom="0dp"/>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_zyroskop"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:text="ŻYROSKOP"
-            android:textSize="6sp"
-            android:maxLines="1"
-            app:backgroundTint="#CC66FF"
-            app:cornerRadius="0dp"
-            app:strokeColor="#000000"
-            app:strokeWidth="1dp"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"/>
+         <com.google.android.material.button.MaterialButton
+             android:id="@+id/btn_zyroskop"
+             android:layout_width="0dp"
+             android:layout_height="match_parent"
+             android:layout_weight="1"
+             android:insetTop="0dp"
+             android:insetBottom="0dp"
+             android:text="ŻYROSKOP"
+             android:textSize="6sp"
+             app:backgroundTint="#CC66FF"
+             app:cornerRadius="0dp"
+             app:strokeColor="#000000"
+             app:strokeWidth="1dp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_system"
@@ -77,8 +74,7 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:text="SYSTEM"
-            android:textSize="6sp"
-            android:maxLines="1"
+            android:textSize="9sp"
             app:backgroundTint="#6666FF"
             app:cornerRadius="0dp"
             app:strokeColor="#000000"
@@ -93,7 +89,6 @@
             android:layout_weight="1"
             android:text="APLIKACJA"
             android:textSize="6sp"
-            android:maxLines="1"
             app:backgroundTint="#FF9933"
             app:cornerRadius="0dp"
             app:strokeColor="#000000"
@@ -230,8 +225,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Wybierz urządzenie:"
-                    android:textColor="#FFFFFF"
-                    android:textSize="13sp"
+                    android:textColor="#000000"
+                    android:textSize="19sp"
                     android:gravity="center"
                     android:textStyle="bold"
                     android:layout_marginTop="6dp"/>
@@ -242,6 +237,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginHorizontal="12dp"
                     android:layout_marginBottom="8dp"
+					android:textColor="#000000"
                     android:background="#FFFFFF" />
 
                 <EditText
@@ -253,6 +249,7 @@
                     android:layout_marginHorizontal="12dp"
                     android:layout_marginBottom="8dp"
                     android:background="#FFFFFF"
+					android:textColor="#000000"
                     android:padding="8dp" />
 
                 <Button
@@ -263,17 +260,9 @@
                     android:layout_marginHorizontal="12dp"
                     android:layout_marginBottom="12dp"
                     android:background="#444444"
-                    android:textColor="#FFFFFF" />
+                    android:textColor="#000000" />
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="RAM (MB) / Bateria (%) / Temp (°C) / CPU (GHz)"
-                    android:textColor="#FFFFFF"
-                    android:textSize="13sp"
-                    android:gravity="center"
-                    android:textStyle="bold"
-                    android:layout_marginTop="6dp"/>
+             
 
                 <TextView
                     android:layout_width="match_parent"
@@ -286,7 +275,7 @@
                 <com.github.mikephil.charting.charts.LineChart
                     android:id="@+id/chart_app_ram"
                     android:layout_width="match_parent"
-                    android:layout_height="160dp"
+                    android:layout_height="190dp"
                     android:background="#222222"
                     android:layout_marginHorizontal="10dp"
                     android:layout_marginBottom="8dp"/>
