@@ -20,7 +20,6 @@ Dane są wizualizowane na żywo za pomocą wykresów liniowych oraz przechowywan
 * **Wykresy w Czasie Rzeczywistym:** Wizualizacja danych za pomocą MPAndroidChart.
 * **Firebase Integration:** Przechowywanie i ładowanie danych historycznych.
 * **Usługa w Tle:** Ciągłe zbieranie danych z notyfikacjami.
-* **Profesjonalny Interfejs:** Ciemny motyw, intuicyjna nawigacja.
 
 ---
 
@@ -88,7 +87,7 @@ Dane są wizualizowane na żywo za pomocą wykresów liniowych oraz przechowywan
 
 Aplikacja generuje cztery osobne wykresy PNG poprzez kod Python:
 
-* `wykres_bateria_poziom.png`: Poziom baterii w czasie.
+* `wykres_bateria_poziom.png`: Poziom baterii w czasie rzewczywistym.
 * `wykres_bateria_temp.png`: Temperatura baterii.
 * `wykres_cpu.png`: Częstotliwość CPU.
 * `wykres_ram.png`: Użycie RAM.
@@ -102,8 +101,6 @@ Wszystkie wrażliwe dane (lokalizacja, kamera) wymagają zgody użytkownika. Dan
 ---
 
 ## 🐛 Znane Problemy
-
-* **Latarka:** Obecnie symulowana (Toast), nie działa fizycznie.
 * **Firebase:** Wymaga stabilnego połączenia internetowego.
 * **Wykresy:** Mogą być wolne na starszych urządzeniach.
 
