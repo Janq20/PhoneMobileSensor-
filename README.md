@@ -34,7 +34,7 @@ Dane są wizualizowane na żywo za pomocą wykresów liniowych oraz przechowywan
 | **Ekran Aplikacja** | Ładowanie i wizualizacja danych z Firebase dla innych urządzeń. |
 | **Usługa Monitor** | Ciągłe zbieranie danych w tle z notyfikacjami. |
 | **Eksport Danych** | Kopiowanie informacji do schowka. |
-| **Latarka** | Kontrola latarki (symulowana w wersji demo). |
+| **Latarka** | Uruchamia latarkę po kliknięciu w Panelu SYSTEM. |
 
 ---
 
