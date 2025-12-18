@@ -69,7 +69,9 @@ import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
@@ -90,95 +92,136 @@ import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.formatter.ValueFormatter;
 
-// ==========================================
-// STAŁE I ZMIENNE GLOBALNE
-// ==========================================
-
+/**
+ * @brief Główna aktywność aplikacji MobileSensor.
+ *
+ * Klasa MainActivity zarządza interfejsem użytkownika i funkcjonalnościami aplikacji,
+ * takimi jak monitorowanie czujników, GPS, baterii, RAM i CPU. Obsługuje także
+ * połączenie z Firebase dla przechowywania danych oraz wyświetlanie wykresów.
+ *
+ * Funkcje obejmują:
+ * - Wyświetlanie informacji o urządzeniu.
+ * - Monitorowanie czujników (żyroskop, akcelerometr, światło).
+ * - Pobieranie danych pogodowych na podstawie GPS.
+ * - Ładowanie i wyświetlanie danych historycznych z Firebase.
+ * - Zarządzanie usługami w tle (SensorMonitorService).
+ *
+ * @author Janq20
+ * @version 2.0
+ * @date 2025-12-18
+ */
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
 
-    private static final String API_KEY = "73388daab4f30826e3f8cca01c2ddb04";
-    private static final String WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather?lat=%f&lon=%f&appid=%s&units=metric&lang=pl";
-    public static final String FIREBASE_URL = "https://mobilesensormonitor-default-rtdb.europe-west1.firebasedatabase.app";
+    // ==========================================
+    // STAŁE I ZMIENNE GLOBALNE
+    // ==========================================
 
-    private static final int REQUEST_CODE_GPS_PERMISSION = 100;
-    private static final int REQUEST_CODE_CAMERA_PERMISSION = 101;
-    private static final int REQUEST_CODE_POST_NOTIFICATIONS = 102;
+    private static final String API_KEY = "73388daab4f30826e3f8cca01c2ddb04";  ///< Klucz API dla OpenWeatherMap.
+    private static final String WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather?lat=%f&lon=%f&appid=%s&units=metric&lang=pl";  ///< URL dla pobierania danych pogodowych.
+    public static final String FIREBASE_URL = "https://mobilesensormonitor-default-rtdb.europe-west1.firebasedatabase.app";  ///< URL bazy danych Firebase.
 
-    private static final int EKRAN_OGOLNE = 1;
-    private static final int EKRAN_GPS = 2;
-    private static final int EKRAN_ZYROSKOP = 3;
-    private static final int EKRAN_SYSTEM = 4;
-    private static final int EKRAN_APLIKACJA = 5;
+    private static final int REQUEST_CODE_GPS_PERMISSION = 100;  ///< Kod żądania uprawnień GPS.
+    private static final int REQUEST_CODE_CAMERA_PERMISSION = 101;  ///< Kod żądania uprawnień aparatu.
+    private static final int REQUEST_CODE_POST_NOTIFICATIONS = 102;  ///< Kod żądania uprawnień powiadomień.
 
-    private static final int MAX_LOCAL_POINTS = 240;
-    private static final long RAM_PUBLISH_INTERVAL_MS = 60_000;
+    private static final int EKRAN_OGOLNE = 1;  ///< Stała dla ekranu ogólnych informacji.
+    private static final int EKRAN_GPS = 2;  ///< Stała dla ekranu GPS.
+    private static final int EKRAN_ZYROSKOP = 3;  ///< Stała dla ekranu żyroskopu.
+    private static final int EKRAN_SYSTEM = 4;  ///< Stała dla ekranu systemowego.
+    private static final int EKRAN_APLIKACJA = 5;  ///< Stała dla ekranu aplikacji.
 
-    private TextView opisParametrow;
-    private LinearLayout layoutWykresy;
-    private LinearLayout layoutAplikacjaWykres;
-    private LineChart chartRam, chartBattery, chartTemp, chartLight, chartCpu;
-    private LineChart chartAppRam, chartAppBattery, chartAppTemp, chartAppCpu;
-    private Spinner spinnerDevices;
-    private EditText etLimit;
-    private Button btnLoad;
+    private static final int MAX_LOCAL_POINTS = 240;  ///< Maksymalna liczba punktów na lokalnych wykresach.
+    private static final long RAM_PUBLISH_INTERVAL_MS = 60_000;  ///< Interwał publikowania danych RAM (60 sekund).
 
-    private int aktualnieWybranyEkran = EKRAN_OGOLNE;
+    private TextView opisParametrow;  ///< TextView do wyświetlania opisów parametrów.
+    private LinearLayout layoutWykresy;  ///< Layout dla wykresów systemowych.
+    private LinearLayout layoutAplikacjaWykres;  ///< Layout dla wykresów aplikacji.
+    private LineChart chartRam, chartBattery, chartTemp, chartLight, chartCpu;  ///< Wykresy dla danych systemowych.
+    private LineChart chartAppRam, chartAppBattery, chartAppTemp, chartAppCpu;  ///< Wykresy dla danych z Firebase.
+    private Spinner spinnerDevices;  ///< Spinner do wyboru urządzeń.
+    private EditText etLimit;  ///< EditText dla limitu próbek.
+    private Button btnLoad;  ///< Przycisk ładowania danych.
 
-    private SensorManager sensorManager;
-    private Sensor lightSensor, gyroscopeSensor, accelerometerSensor;
-    private float aktualneSwiatloLx = 0.0f;
-    private final float[] aktualnyZyroskop = {0,0,0};
-    private final float[] aktualnyAkcelerometr = {0,0,0};
+    private int aktualnieWybranyEkran = EKRAN_OGOLNE;  ///< Aktualnie wybrany ekran.
 
-    private LocationManager locationManager;
-    private LocationListener locationListener;
-    private Geocoder geocoder;
-    private double aktualnaSzerokosc = 0.0;
-    private double aktualnaDlugosc = 0.0;
-    private float aktualnaDokladnosc = 0.0f;
+    private SensorManager sensorManager;  ///< Menedżer czujników.
+    private Sensor lightSensor, gyroscopeSensor, accelerometerSensor;  ///< Czujniki: światło, żyroskop, akcelerometr.
+    private float aktualneSwiatloLx = 0.0f;  ///< Aktualna wartość światła w lx.
+    private final float[] aktualnyZyroskop = {0,0,0};  ///< Aktualne wartości żyroskopu.
+    private final float[] aktualnyAkcelerometr = {0,0,0};  ///< Aktualne wartości akcelerometru.
 
-    private CameraManager cameraManager;
-    private String cameraId;
-    private boolean isFlashlightOn = false;
+    private LocationManager locationManager;  ///< Menedżer lokalizacji.
+    private LocationListener locationListener;  ///< Listener lokalizacji.
+    private Geocoder geocoder;  ///< Geokoder do adresów.
+    private double aktualnaSzerokosc = 0.0;  ///< Aktualna szerokość geograficzna.
+    private double aktualnaDlugosc = 0.0;  ///< Aktualna długość geograficzna.
+    private float aktualnaDokladnosc = 0.0f;  ///< Aktualna dokładność GPS.
 
-    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
-    private final Handler mainHandler = new Handler(Looper.getMainLooper());
-    private final Handler ramHandler = new Handler(Looper.getMainLooper());
-    private Runnable ramRunnable;
+    private CameraManager cameraManager;  ///< Menedżer aparatu.
+    private String cameraId;  ///< ID aparatu z latarką.
+    private boolean isFlashlightOn = false;  ///< Czy latarka jest włączona.
 
-    private long lastPublishTs = 0;
-    private double sumRam = 0;
-    private double sumTemp = 0;
-    private double sumCpu = 0;
-    private int countSamples = 0;
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();  ///< Executor dla zadań w tle.
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());  ///< Handler dla głównego wątku.
+    private final Handler ramHandler = new Handler(Looper.getMainLooper());  ///< Handler dla odświeżania RAM.
+    private Runnable ramRunnable;  ///< Runnable dla odświeżania RAM.
 
-    private boolean firebasePolaczony = false;
-    private FirebaseDatabase firebaseDatabase;
-    private DatabaseReference firebaseRootRef;
-    private DatabaseReference firebaseDeviceRef;
-    private ValueEventListener ramFirebaseListener;
-    private String deviceId;
+    private long lastPublishTs = 0;  ///< Ostatni czas publikacji danych.
+    private double sumRam = 0;  ///< Suma użycia RAM.
+    private double sumTemp = 0;  ///< Suma temperatury baterii.
+    private double sumCpu = 0;  ///< Suma częstotliwości CPU.
+    private int countSamples = 0;  ///< Liczba próbek.
 
-// ==========================================
-// KLASA WEWNĘTRZNA RAMSAMPLE
-// ==========================================
+    private boolean firebasePolaczony = false;  ///< Czy Firebase jest połączone.
+    private FirebaseDatabase firebaseDatabase;  ///< Instancja Firebase Database.
+    private DatabaseReference firebaseRootRef;  ///< Referencja do korzenia Firebase.
+    private DatabaseReference firebaseDeviceRef;  ///< Referencja do urządzenia w Firebase.
+    private ValueEventListener ramFirebaseListener;  ///< Listener dla danych RAM z Firebase.
+    private String deviceId;  ///< ID urządzenia.
 
+    // ==========================================
+    // KLASA WEWNĘTRZNA RAMSAMPLE
+    // ==========================================
+
+    /**
+     * @brief Klasa reprezentująca próbkę danych RAM.
+     *
+     * Przechowuje informacje o użyciu RAM, poziomie baterii, temperaturze baterii
+     * i częstotliwości CPU w danym czasie.
+     */
     public static class RamSample {
-        public long czas;
-        public double ram_uzycie;  // Zmienione z ram_wolne na ram_uzycie
-        public int bateria_poziom;
-        public double bateria_temp;
-        public double cpu_freq;
+        public long czas;  ///< Czas próbkowania w milisekundach.
+        public double ram_uzycie;  ///< Użycie RAM w MB.
+        public int bateria_poziom;  ///< Poziom baterii w procentach.
+        public double bateria_temp;  ///< Temperatura baterii w °C.
+        public double cpu_freq;  ///< Częstotliwość CPU w GHz.
+
+        /**
+         * @brief Konstruktor domyślny.
+         */
         public RamSample() {}
+
+        /**
+         * @brief Konstruktor z parametrami.
+         * @param czas Czas próbkowania.
+         * @param ram_uzycie Użycie RAM.
+         * @param bateria_poziom Poziom baterii.
+         * @param bateria_temp Temperatura baterii.
+         * @param cpu_freq Częstotliwość CPU.
+         */
         public RamSample(long czas, double ram_uzycie, int bateria_poziom, double bateria_temp, double cpu_freq){
             this.czas=czas; this.ram_uzycie=ram_uzycie; this.bateria_poziom=bateria_poziom; this.bateria_temp=bateria_temp; this.cpu_freq=cpu_freq;
         }
     }
 
-// ==========================================
-// METODY ŻYCIA AKTYWNOŚCI
-// ==========================================
+    // ==========================================
+    // METODY ŻYCIA AKTYWNOŚCI
+    // ==========================================
 
+    /**
+     * @brief Metoda wywoływana przy tworzeniu aktywności.
+     * @param savedInstanceState Stan zapisany aktywności.
+     */
     @Override protected void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -198,6 +241,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         wyswietlInformacjeOgolne();
     }
 
+    /**
+     * @brief Metoda wywoływana przy wznawianiu aktywności.
+     */
     @Override protected void onResume(){
         super.onResume();
         if (sensorManager != null) {
@@ -209,6 +255,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if (aktualnieWybranyEkran == EKRAN_OGOLNE || aktualnieWybranyEkran == EKRAN_SYSTEM) startRamRefresher();
     }
 
+    /**
+     * @brief Metoda wywoływana przy zatrzymaniu aktywności.
+     */
     @Override protected void onPause(){
         super.onPause();
         if (sensorManager != null) sensorManager.unregisterListener(this);
@@ -219,6 +268,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
+    /**
+     * @brief Metoda wywoływana przy zniszczeniu aktywności.
+     */
     @Override protected void onDestroy(){
         stopRamRefresher();
         stopFirebaseRamListener();
@@ -226,10 +278,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onDestroy();
     }
 
-// ==========================================
-// INICJALIZACJA I USŁUGI
-// ==========================================
+    // ==========================================
+    // INICJALIZACJA I USŁUGI
+    // ==========================================
 
+    /**
+     * @brief Zapewnia uprawnienia do powiadomień i uruchamia usługę monitoringu.
+     */
     private void ensureNotificationPermissionAndStartService(){
         if (Build.VERSION.SDK_INT >= 33 &&
                 ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
@@ -238,12 +293,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
         startMonitoringService();
     }
+
+    /**
+     * @brief Uruchamia usługę monitoringu w tle.
+     */
     private void startMonitoringService(){
         Intent i = new Intent(this, SensorMonitorService.class);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(i);
         else startService(i);
     }
 
+    /**
+     * @brief Inicjalizuje połączenie z Firebase.
+     */
     private void initFirebase(){
         try {
             FirebaseApp.initializeApp(this);
@@ -259,6 +321,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
+    /**
+     * @brief Wysyła bieżącą próbkę danych do Firebase.
+     */
     private void pushCurrentSampleNow(){
         if (!firebasePolaczony || firebaseDeviceRef==null) return;
         ActivityManager.MemoryInfo memInfo = new ActivityManager.MemoryInfo();
@@ -281,10 +346,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         firebaseDeviceRef.push().setValue(sample);
     }
 
-// ==========================================
-// SETUP UI I WYKRESÓW
-// ==========================================
+    // ==========================================
+    // SETUP UI I WYKRESÓW
+    // ==========================================
 
+    /**
+     * @brief Konfiguruje interfejs użytkownika.
+     */
     private void setupUI(){
         if (getSupportActionBar()!=null) getSupportActionBar().hide();
         opisParametrow = findViewById(R.id.opis_parametrow);
@@ -312,10 +380,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         setupSingleChart(chartCpu, Color.MAGENTA, 0, 3.5f, " GHz");
 
         // aplikacja - osobne wykresy (te same konfiguracje)
-        setupSingleChart(chartAppRam, Color.GREEN, 0, 0, " MB");
-        setupSingleChart(chartAppBattery, Color.YELLOW, 0, 100, " %");
-        setupSingleChart(chartAppTemp, Color.RED, 15, 50, " °C");
-        setupSingleChart(chartAppCpu, Color.MAGENTA, 0, 3.5f, " GHz");
+        setupAppChart(chartAppRam, Color.GREEN, 0, 0, " MB");
+        setupAppChart(chartAppBattery, Color.YELLOW, 0, 100, " %");
+        setupAppChart(chartAppTemp, Color.RED, 15, 50, " °C");
+        setupAppChart(chartAppCpu, Color.MAGENTA, 0, 3.5f, " GHz");
 
         loadDeviceListIntoSpinner();
 
@@ -342,10 +410,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         opisParametrow.setOnLongClickListener(v -> { wibruj(100); kopiujDoSchowka(opisParametrow.getText().toString()); return true; });
     }
 
-// ==========================================
-// KONFIGURACJA WYKRESÓW
-// ==========================================
+    // ==========================================
+    // KONFIGURACJA WYKRESÓW
+    // ==========================================
 
+    /**
+     * @brief Konfiguruje pojedynczy wykres dla danych na żywo.
+     * @param chart Wykres do skonfigurowania.
+     * @param color Kolor linii.
+     * @param min Minimalna wartość Y.
+     * @param max Maksymalna wartość Y.
+     * @param unit Jednostka na osi Y.
+     */
     private void setupSingleChart(LineChart chart, int color, float min, float max, String unit){
         if (chart == null) return;
         chart.getDescription().setEnabled(false);
@@ -389,10 +465,71 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         chart.getLegend().setEnabled(false);
     }
 
-// ==========================================
-// OBSŁUGA PRZYCISKÓW
-// ==========================================
+    /**
+     * @brief Konfiguruje wykres dla danych z aplikacji (z Firebase).
+     * @param chart Wykres do skonfigurowania.
+     * @param color Kolor linii.
+     * @param min Minimalna wartość Y.
+     * @param max Maksymalna wartość Y.
+     * @param unit Jednostka na osi Y.
+     */
+    private void setupAppChart(LineChart chart, int color, float min, float max, String unit){
+        if (chart == null) return;
+        chart.getDescription().setEnabled(false);
+        chart.setTouchEnabled(true);  // Umożliwienie zoom i scroll dla lepszego przeglądania danych czasowych
+        chart.setDragEnabled(true);
+        chart.setScaleEnabled(true);
+        chart.setDrawGridBackground(false);
+        chart.setPinchZoom(true);
+        chart.setBackgroundColor(Color.parseColor("#222222"));
+        chart.setMinOffset(12f);
+        LineData data = new LineData();
+        data.setValueTextColor(Color.WHITE);
+        chart.setData(data);
 
+        XAxis x = chart.getXAxis();
+        x.setEnabled(true);
+        x.setTextColor(Color.LTGRAY);
+        x.setTextSize(9f);
+        x.setDrawGridLines(true);
+        x.setGridColor(Color.DKGRAY);
+        x.setPosition(XAxis.XAxisPosition.BOTTOM);
+        x.setValueFormatter(new ValueFormatter() {
+            @Override
+            public String getFormattedValue(float value) {
+                long ts = (long) value;
+                SimpleDateFormat sdf = new SimpleDateFormat("HH:mm", Locale.getDefault());
+                return sdf.format(new Date(ts));
+            }
+        });
+
+        YAxis left = chart.getAxisLeft();
+        left.setTextColor(color);
+        left.setTextSize(10f);
+        if (max > 0) { left.setAxisMinimum(min); left.setAxisMaximum(max); }
+        left.setDrawGridLines(true);
+        left.setGridColor(Color.DKGRAY);
+        left.setValueFormatter(new ValueFormatter() {
+            @Override public String getFormattedValue(float value) {
+                if (unit.contains("GHz")) return String.format(Locale.US, "%.2f%s", value, unit);
+                else if (unit.contains("°C")) return String.format(Locale.US, "%.1f%s", value, unit);
+                else if (unit.contains("MB")) return String.format(Locale.US, "%.0f%s", value, unit);
+                else if (unit.contains("%")) return String.format(Locale.US, "%.0f%s", value, unit);
+                else if (unit.contains("lx")) return String.format(Locale.US, "%.0f%s", value, unit);
+                return String.format(Locale.US, "%.0f", value);
+            }
+        });
+        chart.getAxisRight().setEnabled(false);
+        chart.getLegend().setEnabled(false);
+    }
+
+    // ==========================================
+    // OBSŁUGA PRZYCISKÓW
+    // ==========================================
+
+    /**
+     * @brief Konfiguruje przyciski nawigacji.
+     */
     private void setupButtons(){
         View.OnClickListener listener = v -> {
             wibruj(15);
@@ -430,10 +567,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         for (int id : buttons) { View btn = findViewById(id); if (btn != null) btn.setOnClickListener(listener); }
     }
 
-// ==========================================
-// MONITORING RAM I DANYCH
-// ==========================================
+    // ==========================================
+    // MONITORING RAM I DANYCH
+    // ==========================================
 
+    /**
+     * @brief Konfiguruje odświeżanie danych RAM.
+     */
     private void setupRamRefresher(){
         ramRunnable = new Runnable() {
             @Override public void run() {
@@ -493,12 +633,23 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         };
     }
 
-// ==========================================
-// POMOCNICZE FUNKCJE
-// ==========================================
+    // ==========================================
+    // POMOCNICZE FUNKCJE
+    // ==========================================
 
+    /**
+     * @brief Ogranicza wartość do zakresu.
+     * @param v Wartość do ograniczenia.
+     * @param min Minimalna wartość.
+     * @param max Maksymalna wartość.
+     * @return Ograniczona wartość.
+     */
     private float clamp(float v, float min, float max){ return Math.max(min, Math.min(max, v)); }
 
+    /**
+     * @brief Pobiera aktualną częstotliwość CPU.
+     * @return Częstotliwość CPU w GHz.
+     */
     private float getCpuFreqFloat(){
         try (RandomAccessFile reader = new RandomAccessFile("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq","r")){
             String line = reader.readLine();
@@ -506,12 +657,35 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         } catch (Exception e){ return 0; }
     }
 
+    /**
+     * @brief Zaokrągla liczbę do określonej liczby miejsc dziesiętnych.
+     * @param v Wartość do zaokrąglenia.
+     * @param places Liczba miejsc dziesiętnych.
+     * @return Zaokrąglona wartość.
+     */
     private double zaokraglij(double v, int places){
         long factor = (long)Math.pow(10, places);
         long tmp = Math.round(v*factor);
         return tmp/(double)factor;
     }
 
+    /**
+     * @brief Uruchamia benchmark CPU.
+     */
+    private void runCpuBenchmark() {
+        // Proste obliczenia matematyczne dla testu wydajności CPU
+        for (int i = 0; i < 100000; i++) {
+            double result = Math.sqrt(i) * Math.sin(i) + Math.cos(i * 2);
+            // Bez użycia wyniku, żeby optymalizator nie usunął kodu
+        }
+    }
+
+    /**
+     * @brief Aktualizuje pojedynczy wykres.
+     * @param chart Wykres do aktualizacji.
+     * @param val Nowa wartość.
+     * @param color Kolor linii.
+     */
     private void updateSingleChart(LineChart chart, float val, int color){
         if (chart == null) return;
         if (chart.getData() == null) chart.setData(new LineData());
@@ -544,10 +718,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         chart.moveViewToX(data.getEntryCount());
     }
 
-// ==========================================
-// ŁADOWANIE DANYCH Z FIREBASE
-// ==========================================
+    // ==========================================
+    // ŁADOWANIE DANYCH Z FIREBASE
+    // ==========================================
 
+    /**
+     * @brief Ładuje listę urządzeń do Spinnera.
+     */
     private void loadDeviceListIntoSpinner() {
         if (firebaseRootRef == null) return;
         firebaseRootRef.addListenerForSingleValueEvent(new ValueEventListener() {
@@ -574,6 +751,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         });
     }
 
+    /**
+     * @brief Ładuje i wyświetla dane z Firebase na wykresach.
+     * @param path Ścieżka do danych w Firebase.
+     * @param limit Limit próbek.
+     */
     private void loadAndPlotIntoFourCharts(String path, int limit) {
         try {
             DatabaseReference ref = firebaseDatabase.getReference(path);
@@ -583,6 +765,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             ref.orderByChild("czas").limitToLast(limit)
                     .addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override public void onDataChange(@NonNull DataSnapshot snapshot) {
+                            if (snapshot.getChildrenCount() == 0) {
+                                Toast.makeText(MainActivity.this, "Brak danych do wyświetlenia.", Toast.LENGTH_SHORT).show();
+                                return;
+                            }
+
                             LineData dataRam = chartAppRam.getData(); if (dataRam==null) { dataRam=new LineData(); chartAppRam.setData(dataRam); }
                             LineData dataBat = chartAppBattery.getData(); if (dataBat==null) { dataBat=new LineData(); chartAppBattery.setData(dataBat); }
                             LineData dataTemp= chartAppTemp.getData(); if (dataTemp==null){ dataTemp=new LineData(); chartAppTemp.setData(dataTemp); }
@@ -598,15 +785,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                             if (tempSet==null){ tempSet= baseSet(Color.RED, "Temperatura (°C)"); dataTemp.addDataSet(tempSet); }
                             if (cpuSet==null) { cpuSet = baseSet(Color.MAGENTA, "CPU (GHz)"); dataCpu.addDataSet(cpuSet); }
 
-                            int idx = 0;
                             for (DataSnapshot child : snapshot.getChildren()) {
                                 RamSample s = child.getValue(RamSample.class);
                                 if (s == null) continue;
-                                dataRam.addEntry(new Entry(idx, clamp((float) s.ram_uzycie, 0f, 65536f)), dataRam.getIndexOfDataSet(ramSet));  // Użycie RAM
-                                dataBat.addEntry(new Entry(idx, clamp((float) s.bateria_poziom, 0f, 100f)), dataBat.getIndexOfDataSet(batSet));
-                                dataTemp.addEntry(new Entry(idx, clamp((float) s.bateria_temp, -10f, 80f)), dataTemp.getIndexOfDataSet(tempSet));
-                                dataCpu.addEntry(new Entry(idx, clamp((float) s.cpu_freq, 0f, 3.5f)), dataCpu.getIndexOfDataSet(cpuSet));
-                                idx++;
+                                dataRam.addEntry(new Entry((float) s.czas, clamp((float) s.ram_uzycie, 0f, 65536f)), dataRam.getIndexOfDataSet(ramSet));  // Użycie RAM, czas jako X
+                                dataBat.addEntry(new Entry((float) s.czas, clamp((float) s.bateria_poziom, 0f, 100f)), dataBat.getIndexOfDataSet(batSet));
+                                dataTemp.addEntry(new Entry((float) s.czas, clamp((float) s.bateria_temp, -10f, 80f)), dataTemp.getIndexOfDataSet(tempSet));
+                                dataCpu.addEntry(new Entry((float) s.czas, clamp((float) s.cpu_freq, 0f, 3.5f)), dataCpu.getIndexOfDataSet(cpuSet));
                             }
 
                             dataRam.notifyDataChanged(); chartAppRam.notifyDataSetChanged(); chartAppRam.moveViewToX(dataRam.getEntryCount());
@@ -626,19 +811,29 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
+    /**
+     * @brief Tworzy bazowy zestaw danych dla wykresu.
+     * @param color Kolor linii.
+     * @param label Etykieta.
+     * @return LineDataSet.
+     */
     private LineDataSet baseSet(int color, String label) {
         LineDataSet set = new LineDataSet(null, label);
         set.setColor(color);
         set.setLineWidth(2f);
         set.setDrawCircles(false);
         set.setDrawValues(false);
-        set.setMode(LineDataSet.Mode.CUBIC_BEZIER);
+        set.setMode(LineDataSet.Mode.LINEAR);  // Zmienione na LINEAR dla gładkich linii
         set.setDrawFilled(true);
         set.setFillColor(color);
         set.setFillAlpha(50);
         return set;
     }
 
+    /**
+     * @brief Czyści wykres.
+     * @param chart Wykres do wyczyszczenia.
+     */
     private void clearChart(LineChart chart) {
         if (chart == null) return;
         LineData d = chart.getData();
@@ -647,10 +842,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         chart.invalidate();
     }
 
-// ==========================================
-// SETUP SENSORS I LOKALIZACJI
-// ==========================================
+    // ==========================================
+    // SETUP SENSORS I LOKALIZACJI
+    // ==========================================
 
+    /**
+     * @brief Konfiguruje czujniki.
+     */
     private void setupSensors(){
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         if (sensorManager != null) {
@@ -660,6 +858,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
+    /**
+     * @brief Konfiguruje latarkę.
+     */
     private void setupFlashlight(){
         cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
         try {
@@ -673,6 +874,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         } catch (CameraAccessException ignored){}
     }
 
+    /**
+     * @brief Konfiguruje lokalizację.
+     */
     private void setupLocation(){
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         geocoder = new Geocoder(this, Locale.getDefault());
@@ -695,10 +899,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         };
     }
 
-// ==========================================
-// TEKSTOWE FUNKCJE WYŚWIETLANIA
-// ==========================================
+    // ==========================================
+    // TEKSTOWE FUNKCJE WYŚWIETLANIA
+    // ==========================================
 
+    /**
+     * @brief Wyświetla ogólne informacje o urządzeniu.
+     */
     private String daneAplikacjiTekst(){
         return "DANE APLIKACJI\n=====================================\n\n" +
                 "• Wersja: 2.0 (Kompletna)\n" +
@@ -716,6 +923,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 "WCZYTYWANIE BAZY FIREBASE\n=====================================\n";
     }
 
+    /**
+     * @brief Wyświetla ogólne informacje o urządzeniu.
+     */
     private void wyswietlInformacjeOgolne(){
         ActivityManager.MemoryInfo mi=new ActivityManager.MemoryInfo();
         ((ActivityManager)getSystemService(Context.ACTIVITY_SERVICE)).getMemoryInfo(mi);
@@ -739,6 +949,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         opisParametrow.setText(txt);
     }
 
+    /**
+     * @brief Wyświetla informacje GPS.
+     */
     @SuppressLint("MissingPermission")
     private void wyswietlInformacjeGPS(){
         StringBuilder sb=new StringBuilder("PARAMETRY GPS\n-----------------------------------\n\n");
@@ -758,6 +971,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         opisParametrow.setText(sb.toString());
     }
 
+    /**
+     * @brief Wyświetla informacje systemowe.
+     */
     private void wyswietlInformacjeSystemowe(){
         int widthPx,heightPx,densityDpi;
         if (Build.VERSION.SDK_INT >= 30) {
@@ -781,6 +997,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         opisParametrow.setText(s);
     }
 
+    /**
+     * @brief Wyświetla dane żyroskopu.
+     */
     private void wyswietlZyroskop(){
         String s=String.format(Locale.US,
                 "ŻYROSKOP (rad/s)\n-----------------------------------\nX: %.2f\nY: %.2f\nZ: %.2f\n\nAKCELEROMETR (m/s²)\n-----------------------------------\nX: %.2f\nY: %.2f\nZ: %.2f\n\n(Przytrzymaj tekst, aby skopiować)",
@@ -789,10 +1008,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         opisParametrow.setText(s);
     }
 
-// ==========================================
-// POMOCNICZE FUNKCJE SYSTEMOWE
-// ==========================================
+    // ==========================================
+    // POMOCNICZE FUNKCJE SYSTEMOWE
+    // ==========================================
 
+    /**
+     * @brief Pobiera pojemność dysku.
+     * @return Informacje o dysku.
+     */
     private String getPojemnoscDysku(){
         try {
             File path= Environment.getDataDirectory();
@@ -805,6 +1028,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             return String.format(Locale.US,"Wolne: %.2f GB\n• Całkowite: %.2f GB",free,total);
         } catch (Exception e){ return "Błąd odczytu"; }
     }
+
+    /**
+     * @brief Pobiera adres na podstawie współrzędnych.
+     * @param lat Szerokość.
+     * @param lon Długość.
+     * @return Adres lub komunikat o błędzie.
+     */
     private String pobierzAdres(double lat,double lon){
         if(!Geocoder.isPresent()) return "Geokodowanie niedostępne";
         try {
@@ -818,6 +1048,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         } catch (Exception ignored){}
         return "Adres nieznany";
     }
+
+    /**
+     * @brief Sprawdza i prosi o uprawnienia GPS.
+     */
     private void sprawdzIpoprosOPermISjeGPS(){
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED) {
             uruchomNasluchiwanieGPS();
@@ -825,6 +1059,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.ACCESS_FINE_LOCATION},REQUEST_CODE_GPS_PERMISSION);
         }
     }
+
+    /**
+     * @brief Uruchamia nasłuchiwanie GPS.
+     */
     @SuppressLint("MissingPermission")
     private void uruchomNasluchiwanieGPS(){
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED) return;
@@ -835,11 +1073,21 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,2000,5,locationListener);
         } catch (Exception ignored){}
     }
+
+    /**
+     * @brief Zatrzymuje nasłuchiwanie GPS.
+     */
     private void zatrzymajNasluchiwanieGPS(){
         if(locationManager!=null && locationListener!=null) {
             try { locationManager.removeUpdates(locationListener); } catch (SecurityException ignored){}
         }
     }
+
+    /**
+     * @brief Pobiera dane pogodowe.
+     * @param lat Szerokość.
+     * @param lon Długość.
+     */
     private void pobierzDanePogodowe(double lat,double lon){
         executorService.execute(() -> {
             String resp="";
@@ -859,6 +1107,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             mainHandler.post(() -> { if(aktualnieWybranyEkran==EKRAN_GPS && !finalResp.isEmpty()) sformatujIWyswietlPogode(finalResp); });
         });
     }
+
+    /**
+     * @brief Formatuje i wyświetla pogodę.
+     * @param json Dane pogodowe w JSON.
+     */
     private void sformatujIWyswietlPogode(String json){
         try {
             JSONObject j=new JSONObject(json);
@@ -881,17 +1134,38 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             opisParametrow.setText(base+blok);
         } catch (Exception ignored){}
     }
+
+    /**
+     * @brief Uruchamia odświeżanie RAM.
+     */
     private void startRamRefresher(){ ramHandler.removeCallbacks(ramRunnable); ramHandler.post(ramRunnable); }
+
+    /**
+     * @brief Zatrzymuje odświeżanie RAM.
+     */
     private void stopRamRefresher(){ ramHandler.removeCallbacks(ramRunnable); }
+
+    /**
+     * @brief Otwiera mapy Google.
+     */
     private void otworzMapyGoogle(){
         try {
             String uri = String.format(Locale.US,"geo:%f,%f?q=%f,%f(Tu jesteś)",aktualnaSzerokosc,aktualnaDlugosc,aktualnaSzerokosc,aktualnaDlugosc);
             startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(uri)));
         } catch (Exception e) { Toast.makeText(this,"Nie znaleziono aplikacji map.",Toast.LENGTH_LONG).show(); }
     }
+
+    /**
+     * @brief Przełącza latarkę (pominięta).
+     */
     private void przelaczLatarke(){
         Toast.makeText(this,"Latarka pominięta w tej wersji",Toast.LENGTH_SHORT).show();
     }
+
+    /**
+     * @brief Wibruje urządzenie.
+     * @param ms Czas wibracji w milisekundach.
+     */
     @SuppressLint("MissingPermission")
     private void wibruj(int ms){
         Vibrator v=(Vibrator)getSystemService(Context.VIBRATOR_SERVICE);
@@ -901,15 +1175,24 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             else v.vibrate(ms);
         }
     }
+
+    /**
+     * @brief Kopiuje tekst do schowka.
+     * @param txt Tekst do skopiowania.
+     */
     private void kopiujDoSchowka(String txt){
         ClipboardManager cb=(ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE);
         if (cb!=null) { cb.setPrimaryClip(ClipData.newPlainText("Dane",txt)); Toast.makeText(this,"Skopiowano",Toast.LENGTH_SHORT).show(); }
     }
 
-// ==========================================
-// OBSŁUGA SENSORÓW
-// ==========================================
+    // ==========================================
+    // OBSŁUGA SENSORÓW
+    // ==========================================
 
+    /**
+     * @brief Obsługuje zmiany sensorów.
+     * @param event Zdarzenie sensora.
+     */
     @Override public void onSensorChanged(SensorEvent event){
         int type = event.sensor.getType();
         if (type==Sensor.TYPE_LIGHT) {
@@ -923,12 +1206,21 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             if (aktualnieWybranyEkran==EKRAN_ZYROSKOP) wyswietlZyroskop();
         }
     }
+
+    /**
+     * @brief Obsługuje zmiany dokładności sensora.
+     * @param sensor Sensor.
+     * @param accuracy Dokładność.
+     */
     @Override public void onAccuracyChanged(Sensor sensor, int accuracy){}
 
-// ==========================================
-// LISTENERY FIREBASE
-// ==========================================
+    // ==========================================
+    // LISTENERY FIREBASE
+    // ==========================================
 
+    /**
+     * @brief Uruchamia listener dla danych RAM z Firebase.
+     */
     private void startFirebaseRamListener() {
         if (!firebasePolaczony || firebaseDeviceRef == null || ramFirebaseListener != null) return;
         ramFirebaseListener = new ValueEventListener() {
@@ -937,6 +1229,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         };
         firebaseDeviceRef.addValueEventListener(ramFirebaseListener);
     }
+
+    /**
+     * @brief Zatrzymuje listener dla danych RAM z Firebase.
+     */
     private void stopFirebaseRamListener() {
         if (firebaseDeviceRef != null && ramFirebaseListener != null) {
             firebaseDeviceRef.removeEventListener(ramFirebaseListener);
@@ -944,26 +1240,31 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
-// ==========================================
-// KLASA USŁUGI MONITORINGU
-// ==========================================
-
+    /**
+     * @brief Klasa usługi monitorowania sensorów w tle.
+     *
+     * Usługa działa w tle, zbierając dane o RAM, baterii, CPU i wysyłając je do Firebase.
+     * Wyświetla także powiadomienia z aktualnymi wartościami.
+     */
     public static class SensorMonitorService extends Service {
-        private static final String CHANNEL_ID = "mobile_sensor_monitor_channel";
-        private static final int NOTIFICATION_ID = 1001;
+        private static final String CHANNEL_ID = "mobile_sensor_monitor_channel";  ///< ID kanału powiadomień.
+        private static final int NOTIFICATION_ID = 1001;  ///< ID powiadomienia.
 
-        private final Handler handler = new Handler(Looper.getMainLooper());
-        private Runnable loop;
+        private final Handler handler = new Handler(Looper.getMainLooper());  ///< Handler dla głównego wątku.
+        private Runnable loop;  ///< Pętla monitorowania.
 
-        private boolean firebaseReady = false;
-        private DatabaseReference firebaseDeviceRef;
-        private String deviceId;
+        private boolean firebaseReady = false;  ///< Czy Firebase jest gotowe.
+        private DatabaseReference firebaseDeviceRef;  ///< Referencja do urządzenia w Firebase.
+        private String deviceId;  ///< ID urządzenia.
 
-        private static final long PUBLISH_INTERVAL_MS = 60_000;
-        private long lastPublishTs = 0;
-        private double sumRam = 0, sumTemp = 0, sumCpu = 0;
-        private int countSamples = 0;
+        private static final long PUBLISH_INTERVAL_MS = 60_000;  ///< Interwał publikowania (60 sekund).
+        private long lastPublishTs = 0;  ///< Ostatni czas publikacji.
+        private double sumRam = 0, sumTemp = 0, sumCpu = 0;  ///< Sumy próbek.
+        private int countSamples = 0;  ///< Liczba próbek.
 
+        /**
+         * @brief Metoda wywoływana przy tworzeniu usługi.
+         */
         @Override public void onCreate(){
             super.onCreate();
             createNotificationChannel();
@@ -974,6 +1275,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             pushNow();
         }
 
+        /**
+         * @brief Inicjalizuje Firebase w usłudze.
+         */
         private void initFirebase(){
             try {
                 FirebaseApp.initializeApp(this);
@@ -984,6 +1288,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             } catch (Exception e){ firebaseReady = false; }
         }
 
+        /**
+         * @brief Konfiguruje pętlę monitorowania.
+         */
         private void setupLoop(){
             loop = new Runnable() {
                 @Override public void run() {
@@ -1030,6 +1337,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             };
         }
 
+        /**
+         * @brief Wysyła natychmiastową próbkę do Firebase.
+         */
         private void pushNow(){
             if (!firebaseReady || firebaseDeviceRef==null) return;
             try {
@@ -1054,6 +1364,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             } catch (Exception ignored){}
         }
 
+        /**
+         * @brief Buduje powiadomienie.
+         * @param content Treść powiadomienia.
+         * @return Notification.
+         */
         private Notification buildNotification(String content){
             return new NotificationCompat.Builder(this, CHANNEL_ID)
                     .setContentTitle("MobileSensor — Monitor")
@@ -1064,10 +1379,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
                     .build();
         }
+
+        /**
+         * @brief Aktualizuje powiadomienie.
+         * @param content Nowa treść.
+         */
         private void updateNotification(String content){
             NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
             if (nm!=null) nm.notify(NOTIFICATION_ID, buildNotification(content));
         }
+
+        /**
+         * @brief Tworzy kanał powiadomień.
+         */
         private void createNotificationChannel(){
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 NotificationChannel ch = new NotificationChannel(CHANNEL_ID, "MobileSensor Monitor", NotificationManager.IMPORTANCE_LOW);
@@ -1076,16 +1400,45 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 if (nm!=null) nm.createNotificationChannel(ch);
             }
         }
+
+        /**
+         * @brief Pobiera częstotliwość CPU.
+         * @return Częstotliwość w GHz.
+         */
         private float getCpuFreqFloat(){
             try (RandomAccessFile reader = new RandomAccessFile("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq","r")){
                 String line=reader.readLine();
                 return line==null?0:Float.parseFloat(line)/1_000_000.0f;
             } catch (Exception e){ return 0; }
         }
+
+        /**
+         * @brief Zaokrągla liczbę.
+         * @param v Wartość.
+         * @param p Miejsca dziesiętne.
+         * @return Zaokrąglona wartość.
+         */
         private double round(double v,int p){ long f=(long)Math.pow(10,p); return Math.round(v*f)/(double)f; }
 
+        /**
+         * @brief Zwraca binder (nie używany).
+         * @param intent Intent.
+         * @return IBinder.
+         */
         @Nullable @Override public IBinder onBind(Intent intent){ return null; }
+
+        /**
+         * @brief Uruchamia usługę.
+         * @param intent Intent.
+         * @param flags Flagi.
+         * @param startId ID startu.
+         * @return Tryb startu.
+         */
         @Override public int onStartCommand(Intent intent, int flags, int startId){ return START_STICKY; }
+
+        /**
+         * @brief Niszczy usługę.
+         */
         @Override public void onDestroy(){ handler.removeCallbacksAndMessages(null); super.onDestroy(); }
     }
 }
