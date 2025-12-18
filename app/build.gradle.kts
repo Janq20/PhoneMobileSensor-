@@ -1,6 +1,8 @@
 plugins {
+    // Jeśli używasz Version Catalog (libs. ...), alias(...) jest ok.
+    // W przeciwnym razie zamień alias(...) na id("com.android.application")
     alias(libs.plugins.android.application)
-    // Plugin Google Services dla integracji z Firebase
+    // Google services plugin - upewnij się, że masz go w project buildscript (classpath)
     id("com.google.gms.google-services")
 }
 
@@ -37,14 +39,15 @@ android {
 }
 
 dependencies {
-    // MPAndroidChart z JitPack (naprawione współrzędne)
-    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+    // Poprawiony artifact MPAndroidChart (bez "v" przed numerem wersji)
+    implementation("com.github.PhilJay:MPAndroidChart:3.1.0")
 
-    // Firebase BOM – zarządza wersjami wszystkich artefaktów Firebase
-    implementation(platform("com.google.firebase:firebase-bom:33.3.0"))
-    // Realtime Database (używasz FirebaseDatabase, DatabaseReference, itp.)
+    // Zaktualizowany BOM Firebase (możesz użyć innej wersji jeśli chcesz)
+    implementation(platform("com.google.firebase:firebase-bom:33.5.1"))
     implementation("com.google.firebase:firebase-database")
 
+    // Pozostałe zależności wykorzystujące version catalog (libs.*).
+    // Jeśli nie masz version catalog, zamień te na klasyczne coordinates.
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.constraintlayout)
@@ -52,6 +55,7 @@ dependencies {
     implementation(libs.lifecycle.viewmodel.ktx)
     implementation(libs.navigation.fragment)
     implementation(libs.navigation.ui)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
