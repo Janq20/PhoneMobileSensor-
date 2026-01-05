@@ -1,0 +1,632 @@
+{
+  "-OgGS_gA0edMmxF6LuF9": {
+    "bateria_poziom": 100,
+    "bateria_temp": 22,
+    "cpu_freq": 1.8,
+    "czas": 1765524527883,
+    "ram_uzycie": 1679
+  },
+  "-OgGS_hUqb_t_Jk1a1JQ": {
+    "bateria_poziom": 100,
+    "bateria_temp": 22,
+    "cpu_freq": 1.8,
+    "czas": 1765524527967,
+    "ram_uzycie": 1691
+  },
+  "-OgGSo6mn3bgPXVWxLRi": {
+    "bateria_poziom": 100,
+    "bateria_temp": 21.9,
+    "cpu_freq": 1.65,
+    "czas": 1765524588792,
+    "ram_uzycie": 2178
+  },
+  "-OgGT1ylSrBnIUZj5GIr": {
+    "bateria_poziom": 100,
+    "bateria_temp": 21.5,
+    "cpu_freq": 1.35,
+    "czas": 1765524649616,
+    "ram_uzycie": 2522
+  },
+  "-OgGTGm0VIwL7paBzewZ": {
+    "bateria_poziom": 100,
+    "bateria_temp": 24.2,
+    "cpu_freq": 1.34,
+    "czas": 1765524710221,
+    "ram_uzycie": 2528
+  },
+  "-OgGTV_t2NyXQVzmFk4C": {
+    "bateria_poziom": 100,
+    "bateria_temp": 25.2,
+    "cpu_freq": 0.95,
+    "czas": 1765524770886,
+    "ram_uzycie": 2513
+  },
+  "-OgGTjPOvNjYSZflSpmt": {
+    "bateria_poziom": 99,
+    "bateria_temp": 26.7,
+    "cpu_freq": 0.95,
+    "czas": 1765524831592,
+    "ram_uzycie": 2532
+  },
+  "-OgGTyDriWdUQbruyE5u": {
+    "bateria_poziom": 99,
+    "bateria_temp": 30.2,
+    "cpu_freq": 0.81,
+    "czas": 1765524892286,
+    "ram_uzycie": 2521
+  },
+  "-OgGUC36NePc0QFGIycO": {
+    "bateria_poziom": 98,
+    "bateria_temp": 32.4,
+    "cpu_freq": 0.52,
+    "czas": 1765524953044,
+    "ram_uzycie": 2514
+  },
+  "-OgGUQsEE05L9st12PLy": {
+    "bateria_poziom": 97,
+    "bateria_temp": 33.9,
+    "cpu_freq": 0.84,
+    "czas": 1765525013718,
+    "ram_uzycie": 2515
+  },
+  "-OgGUefyUeH70fDQj1hN": {
+    "bateria_poziom": 97,
+    "bateria_temp": 35,
+    "cpu_freq": 1.03,
+    "czas": 1765525074381,
+    "ram_uzycie": 2532
+  },
+  "-OgGUtU89hZtnsPMhKag": {
+    "bateria_poziom": 96,
+    "bateria_temp": 35,
+    "cpu_freq": 1.07,
+    "czas": 1765525134989,
+    "ram_uzycie": 2545
+  },
+  "-OgGV7Gq9TNk_mxy7ou5": {
+    "bateria_poziom": 95,
+    "bateria_temp": 35.5,
+    "cpu_freq": 1.4,
+    "czas": 1765525195589,
+    "ram_uzycie": 2500
+  },
+  "-OgGVM32_tpbQAUpFraO": {
+    "bateria_poziom": 95,
+    "bateria_temp": 35.2,
+    "cpu_freq": 1.4,
+    "czas": 1765525256148,
+    "ram_uzycie": 2504
+  },
+  "-OgGV_qttowx14KVENHc": {
+    "bateria_poziom": 94,
+    "bateria_temp": 36,
+    "cpu_freq": 1.28,
+    "czas": 1765525316732,
+    "ram_uzycie": 2509
+  },
+  "-OgGVodnnR5WyTOeHcUI": {
+    "bateria_poziom": 94,
+    "bateria_temp": 36.3,
+    "cpu_freq": 1.23,
+    "czas": 1765525377336,
+    "ram_uzycie": 2518
+  },
+  "-OgGW2QBjWRVCFf9IRF2": {
+    "bateria_poziom": 93,
+    "bateria_temp": 36.3,
+    "cpu_freq": 1.58,
+    "czas": 1765525437849,
+    "ram_uzycie": 2510
+  },
+  "-OgGWHBisOoZlz3eJ1gM": {
+    "bateria_poziom": 93,
+    "bateria_temp": 36,
+    "cpu_freq": 1.62,
+    "czas": 1765525498359,
+    "ram_uzycie": 2516
+  },
+  "-OgGWVyafYJbWQWd5Why": {
+    "bateria_poziom": 92,
+    "bateria_temp": 36.8,
+    "cpu_freq": 1.76,
+    "czas": 1765525558883,
+    "ram_uzycie": 2447
+  },
+  "-OgGWjkRMpnNkP8f6MTx": {
+    "bateria_poziom": 92,
+    "bateria_temp": 36.2,
+    "cpu_freq": 1.59,
+    "czas": 1765525619423,
+    "ram_uzycie": 2427
+  },
+  "-OgGWyWXyQ7l5ZA33Hey": {
+    "bateria_poziom": 91,
+    "bateria_temp": 36.8,
+    "cpu_freq": 1.71,
+    "czas": 1765525679913,
+    "ram_uzycie": 2449
+  },
+  "-OgGXCIpMgPzg1w13MLL": {
+    "bateria_poziom": 90,
+    "bateria_temp": 37,
+    "cpu_freq": 1.33,
+    "czas": 1765525740472,
+    "ram_uzycie": 2462
+  },
+  "-OgGXR4ndRbAxXrDAsP7": {
+    "bateria_poziom": 90,
+    "bateria_temp": 37,
+    "cpu_freq": 1.39,
+    "czas": 1765525801014,
+    "ram_uzycie": 2473
+  },
+  "-OgGXer5Rjj4Xw9bJH7E": {
+    "bateria_poziom": 89,
+    "bateria_temp": 37,
+    "cpu_freq": 1.68,
+    "czas": 1765525861513,
+    "ram_uzycie": 2469
+  },
+  "-OgGXtcwaVKv9ZpoIXPD": {
+    "bateria_poziom": 89,
+    "bateria_temp": 37,
+    "cpu_freq": 1.59,
+    "czas": 1765525922053,
+    "ram_uzycie": 2479
+  },
+  "-OgGY7PpR5EXm581GZk0": {
+    "bateria_poziom": 88,
+    "bateria_temp": 37.3,
+    "cpu_freq": 1.6,
+    "czas": 1765525982589,
+    "ram_uzycie": 2484
+  },
+  "-OgGYMBdHI7KPyu8iAKT": {
+    "bateria_poziom": 88,
+    "bateria_temp": 37.7,
+    "cpu_freq": 1.57,
+    "czas": 1765526043116,
+    "ram_uzycie": 2507
+  },
+  "-OgGY_y81iJrH6DELBjk": {
+    "bateria_poziom": 87,
+    "bateria_temp": 37,
+    "cpu_freq": 1.68,
+    "czas": 1765526103627,
+    "ram_uzycie": 2509
+  },
+  "-OgGYokGR7TsvhGkp5HD": {
+    "bateria_poziom": 87,
+    "bateria_temp": 36.7,
+    "cpu_freq": 1.7,
+    "czas": 1765526164180,
+    "ram_uzycie": 2515
+  },
+  "-OgGZ2Wg8A8zD9KL_Pxs": {
+    "bateria_poziom": 87,
+    "bateria_temp": 36.3,
+    "cpu_freq": 1.76,
+    "czas": 1765526224685,
+    "ram_uzycie": 2516
+  },
+  "-OgGZHIkFX8bCtzIlCLK": {
+    "bateria_poziom": 86,
+    "bateria_temp": 37,
+    "cpu_freq": 1.71,
+    "czas": 1765526285228,
+    "ram_uzycie": 2495
+  },
+  "-OgGZW4ZT7kqF5xJmkgD": {
+    "bateria_poziom": 85,
+    "bateria_temp": 37,
+    "cpu_freq": 1.58,
+    "czas": 1765526345765,
+    "ram_uzycie": 2500
+  },
+  "-OgGZjrboet6hj6yjHmL": {
+    "bateria_poziom": 85,
+    "bateria_temp": 37,
+    "cpu_freq": 1.6,
+    "czas": 1765526406312,
+    "ram_uzycie": 2504
+  },
+  "-OgGZyhf-HKDL0MsTTmk": {
+    "bateria_poziom": 85,
+    "bateria_temp": 37,
+    "cpu_freq": 1.75,
+    "czas": 1765526467114,
+    "ram_uzycie": 2514
+  },
+  "-OgG_CV6oFBsS5BSSt9W": {
+    "bateria_poziom": 84,
+    "bateria_temp": 37,
+    "cpu_freq": 1.69,
+    "czas": 1765526527695,
+    "ram_uzycie": 2505
+  },
+  "-OgG_RH2gVlebg_UvANp": {
+    "bateria_poziom": 84,
+    "bateria_temp": 37.4,
+    "cpu_freq": 1.64,
+    "czas": 1765526588238,
+    "ram_uzycie": 2512
+  },
+  "-OgG_f8oKskV8m4KDNNg": {
+    "bateria_poziom": 83,
+    "bateria_temp": 37.9,
+    "cpu_freq": 1.65,
+    "czas": 1765526649148,
+    "ram_uzycie": 2448
+  },
+  "-OgG_tw7i5wV2EiT7yIm": {
+    "bateria_poziom": 83,
+    "bateria_temp": 37.1,
+    "cpu_freq": 1.42,
+    "czas": 1765526709709,
+    "ram_uzycie": 2413
+  },
+  "-OgGa7hwXLr0g3GbCQIZ": {
+    "bateria_poziom": 83,
+    "bateria_temp": 37.9,
+    "cpu_freq": 1.76,
+    "czas": 1765526770238,
+    "ram_uzycie": 2418
+  },
+  "-OgGaMUK9vQ5M1o2oclk": {
+    "bateria_poziom": 82,
+    "bateria_temp": 37.8,
+    "cpu_freq": 1.68,
+    "czas": 1765526830750,
+    "ram_uzycie": 2422
+  },
+  "-OgGaaFyO1eMldenorwV": {
+    "bateria_poziom": 82,
+    "bateria_temp": 38,
+    "cpu_freq": 1.7,
+    "czas": 1765526891267,
+    "ram_uzycie": 2430
+  },
+  "-OgGap3UydEkBIU9iF-w": {
+    "bateria_poziom": 81,
+    "bateria_temp": 37.6,
+    "cpu_freq": 0.89,
+    "czas": 1765526951911,
+    "ram_uzycie": 2443
+  },
+  "-OgGb2rsgseoMkJUAi-x": {
+    "bateria_poziom": 81,
+    "bateria_temp": 37,
+    "cpu_freq": 0.99,
+    "czas": 1765527012547,
+    "ram_uzycie": 2455
+  },
+  "-OgGbHdvuXxRZZ4EVRtu": {
+    "bateria_poziom": 80,
+    "bateria_temp": 37.3,
+    "cpu_freq": 1.53,
+    "czas": 1765527073084,
+    "ram_uzycie": 2467
+  },
+  "-OgGbWQmu9cIHAWRt6r6": {
+    "bateria_poziom": 80,
+    "bateria_temp": 37.1,
+    "cpu_freq": 1.58,
+    "czas": 1765527133621,
+    "ram_uzycie": 2447
+  },
+  "-OgGbkCtxTRcJVNkfWKQ": {
+    "bateria_poziom": 80,
+    "bateria_temp": 38,
+    "cpu_freq": 1.6,
+    "czas": 1765527194173,
+    "ram_uzycie": 2447
+  },
+  "-OgGbyzf5NY4ACjYXn3q": {
+    "bateria_poziom": 79,
+    "bateria_temp": 38,
+    "cpu_freq": 1.59,
+    "czas": 1765527254701,
+    "ram_uzycie": 2462
+  },
+  "-OgGcCkkZppaS_V6yH6R": {
+    "bateria_poziom": 79,
+    "bateria_temp": 38,
+    "cpu_freq": 1.6,
+    "czas": 1765527315213,
+    "ram_uzycie": 2487
+  },
+  "-OgGcRY3FPDoq3PlaaPo": {
+    "bateria_poziom": 78,
+    "bateria_temp": 38,
+    "cpu_freq": 1.56,
+    "czas": 1765527375749,
+    "ram_uzycie": 2487
+  },
+  "-OgGcfJdjMXZGcN8KeLP": {
+    "bateria_poziom": 78,
+    "bateria_temp": 38,
+    "cpu_freq": 1.53,
+    "czas": 1765527436269,
+    "ram_uzycie": 2483
+  },
+  "-OgGcu67Pv8SHB8bbrx3": {
+    "bateria_poziom": 78,
+    "bateria_temp": 37.8,
+    "cpu_freq": 1.34,
+    "czas": 1765527496843,
+    "ram_uzycie": 2495
+  },
+  "-OgGd7u3Z9m9A6RJk4mX": {
+    "bateria_poziom": 77,
+    "bateria_temp": 37.5,
+    "cpu_freq": 1.45,
+    "czas": 1765527557447,
+    "ram_uzycie": 2523
+  },
+  "-OgGdMfYQ8sOBCt_rDYn": {
+    "bateria_poziom": 77,
+    "bateria_temp": 37.5,
+    "cpu_freq": 1.75,
+    "czas": 1765527617959,
+    "ram_uzycie": 2519
+  },
+  "-OgGdaZEOWkHkerFecIr": {
+    "bateria_poziom": 76,
+    "bateria_temp": 37,
+    "cpu_freq": 1.66,
+    "czas": 1765527678946,
+    "ram_uzycie": 2539
+  },
+  "-OgGdpQN1Dr0s_48aopp": {
+    "bateria_poziom": 76,
+    "bateria_temp": 37,
+    "cpu_freq": 1.66,
+    "czas": 1765527739813,
+    "ram_uzycie": 2467
+  },
+  "-OgGe3CFP_JCsqLvKFjW": {
+    "bateria_poziom": 75,
+    "bateria_temp": 37,
+    "cpu_freq": 1.59,
+    "czas": 1765527800353,
+    "ram_uzycie": 2468
+  },
+  "-OgGeHzgsVu-jZKc8-5H": {
+    "bateria_poziom": 75,
+    "bateria_temp": 37.2,
+    "cpu_freq": 1.67,
+    "czas": 1765527860909,
+    "ram_uzycie": 2480
+  },
+  "-OgGeWl8W1eF_03VgQef": {
+    "bateria_poziom": 75,
+    "bateria_temp": 37.8,
+    "cpu_freq": 1.73,
+    "czas": 1765527921423,
+    "ram_uzycie": 2480
+  },
+  "-OgGekUL8rEyrAVfllDv": {
+    "bateria_poziom": 74,
+    "bateria_temp": 37,
+    "cpu_freq": 1.73,
+    "czas": 1765527981927,
+    "ram_uzycie": 2486
+  },
+  "-OgGezG2-AjEyMMGuagE": {
+    "bateria_poziom": 74,
+    "bateria_temp": 37,
+    "cpu_freq": 1.69,
+    "czas": 1765528042452,
+    "ram_uzycie": 2500
+  },
+  "-OgGfD4VRMR-pQ5NoSxP": {
+    "bateria_poziom": 73,
+    "bateria_temp": 37,
+    "cpu_freq": 1.74,
+    "czas": 1765528102943,
+    "ram_uzycie": 2507
+  },
+  "-OgGfRs3hNsBI6_bmjz1": {
+    "bateria_poziom": 73,
+    "bateria_temp": 37,
+    "cpu_freq": 1.25,
+    "czas": 1765528163526,
+    "ram_uzycie": 2520
+  },
+  "-OgGffe1gYPOI5vtBwVd": {
+    "bateria_poziom": 72,
+    "bateria_temp": 37.3,
+    "cpu_freq": 1.53,
+    "czas": 1765528224080,
+    "ram_uzycie": 2527
+  },
+  "-OgGfuQlUBEiGztqulSM": {
+    "bateria_poziom": 72,
+    "bateria_temp": 37,
+    "cpu_freq": 1.73,
+    "czas": 1765528284607,
+    "ram_uzycie": 2517
+  },
+  "-OgGg8CXV2Wbj-p-UMtO": {
+    "bateria_poziom": 72,
+    "bateria_temp": 37,
+    "cpu_freq": 1.72,
+    "czas": 1765528345119,
+    "ram_uzycie": 2516
+  },
+  "-OgGgMzArttah53hquMw": {
+    "bateria_poziom": 71,
+    "bateria_temp": 37,
+    "cpu_freq": 1.71,
+    "czas": 1765528405650,
+    "ram_uzycie": 2532
+  },
+  "-OgGgakn58RnCv3SITP_": {
+    "bateria_poziom": 71,
+    "bateria_temp": 38,
+    "cpu_freq": 1.72,
+    "czas": 1765528466164,
+    "ram_uzycie": 2540
+  },
+  "-OgGgpXIwi9zPo17YKa8": {
+    "bateria_poziom": 70,
+    "bateria_temp": 38,
+    "cpu_freq": 1.62,
+    "czas": 1765528526673,
+    "ram_uzycie": 2553
+  },
+  "-OgGh3IeD947FFzDqbzG": {
+    "bateria_poziom": 70,
+    "bateria_temp": 38,
+    "cpu_freq": 1.74,
+    "czas": 1765528587178,
+    "ram_uzycie": 2557
+  },
+  "-OgGhI3mdmdo-BF6RZRM": {
+    "bateria_poziom": 69,
+    "bateria_temp": 38,
+    "cpu_freq": 1.71,
+    "czas": 1765528647665,
+    "ram_uzycie": 2557
+  },
+  "-OgGhWq29VqncNmc-_I9": {
+    "bateria_poziom": 69,
+    "bateria_temp": 38,
+    "cpu_freq": 1.69,
+    "czas": 1765528708162,
+    "ram_uzycie": 2560
+  },
+  "-OgGhkjko4Qb7ug66n3L": {
+    "bateria_poziom": 69,
+    "bateria_temp": 38,
+    "cpu_freq": 1.78,
+    "czas": 1765528769198,
+    "ram_uzycie": 2548
+  },
+  "-OgGhzZzLMMqnAPlWSl1": {
+    "bateria_poziom": 68,
+    "bateria_temp": 39,
+    "cpu_freq": 1.18,
+    "czas": 1765528829955,
+    "ram_uzycie": 2511
+  },
+  "-OgGiDLwKtXDl3HX4IVG": {
+    "bateria_poziom": 68,
+    "bateria_temp": 39,
+    "cpu_freq": 1.64,
+    "czas": 1765528890495,
+    "ram_uzycie": 2510
+  },
+  "-OgGiS79NjmVC0czFtlN": {
+    "bateria_poziom": 67,
+    "bateria_temp": 39,
+    "cpu_freq": 1.74,
+    "czas": 1765528950986,
+    "ram_uzycie": 2518
+  },
+  "-OgGiftcAbAQnigC-5aw": {
+    "bateria_poziom": 67,
+    "bateria_temp": 39,
+    "cpu_freq": 1.71,
+    "czas": 1765529011496,
+    "ram_uzycie": 2521
+  },
+  "-OgGiugk78CfVgOS5Smt": {
+    "bateria_poziom": 66,
+    "bateria_temp": 39,
+    "cpu_freq": 1.66,
+    "czas": 1765529072110,
+    "ram_uzycie": 2545
+  },
+  "-OgGj8TwsQOYApdJByeY": {
+    "bateria_poziom": 66,
+    "bateria_temp": 39,
+    "cpu_freq": 1.62,
+    "czas": 1765529132671,
+    "ram_uzycie": 2526
+  },
+  "-OgGjNG8kDSsUU09ngyG": {
+    "bateria_poziom": 65,
+    "bateria_temp": 39,
+    "cpu_freq": 1.66,
+    "czas": 1765529193222,
+    "ram_uzycie": 2541
+  },
+  "-OgGjb2A2ojqf56FYJ8V": {
+    "bateria_poziom": 65,
+    "bateria_temp": 39,
+    "cpu_freq": 1.75,
+    "czas": 1765529253769,
+    "ram_uzycie": 2559
+  },
+  "-OgGjpomHhA4WOZ9aepL": {
+    "bateria_poziom": 65,
+    "bateria_temp": 39,
+    "cpu_freq": 1.72,
+    "czas": 1765529314298,
+    "ram_uzycie": 2567
+  },
+  "-OgGk3d6yESJuyBydpVg": {
+    "bateria_poziom": 64,
+    "bateria_temp": 39,
+    "cpu_freq": 1.61,
+    "czas": 1765529374976,
+    "ram_uzycie": 2549
+  },
+  "-OgGkIPhdVnnw0DB4hj0": {
+    "bateria_poziom": 64,
+    "bateria_temp": 39,
+    "cpu_freq": 1.6,
+    "czas": 1765529435511,
+    "ram_uzycie": 2543
+  },
+  "-OgGkXBqEAV7WVrB1qlI": {
+    "bateria_poziom": 63,
+    "bateria_temp": 39.9,
+    "cpu_freq": 1.39,
+    "czas": 1765529496068,
+    "ram_uzycie": 2534
+  },
+  "-OgGkkyU2VPSmRU9d3Ru": {
+    "bateria_poziom": 63,
+    "bateria_temp": 40,
+    "cpu_freq": 1.74,
+    "czas": 1765529556589,
+    "ram_uzycie": 2535
+  },
+  "-OgGkzk-NR2xq6P8nKge": {
+    "bateria_poziom": 62,
+    "bateria_temp": 39.1,
+    "cpu_freq": 1.74,
+    "czas": 1765529617090,
+    "ram_uzycie": 2539
+  },
+  "-OgGlDWrIyk7FIQuJYBa": {
+    "bateria_poziom": 62,
+    "bateria_temp": 39,
+    "cpu_freq": 1.73,
+    "czas": 1765529677626,
+    "ram_uzycie": 2549
+  },
+  "-OgGlSIonkXggPBap8Qk": {
+    "bateria_poziom": 61,
+    "bateria_temp": 39.3,
+    "cpu_freq": 1.72,
+    "czas": 1765529738162,
+    "ram_uzycie": 2545
+  },
+  "-OgGlg4JaFdHrDroJG2q": {
+    "bateria_poziom": 61,
+    "bateria_temp": 40,
+    "cpu_freq": 1.71,
+    "czas": 1765529798684,
+    "ram_uzycie": 2540
+  },
+  "-OgGlusrsb18FQW1WM5N": {
+    "bateria_poziom": 61,
+    "bateria_temp": 40,
+    "cpu_freq": 1.67,
+    "czas": 1765529859315,
+    "ram_uzycie": 2555
+  }
+}
